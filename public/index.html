@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en" class="dark-theme">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FileCompressor Pro | Smart File Compression</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+</head>
+<body>
+<!-- Animated Background -->
+<div class="animated-bg"></div>
+<div class="floating-shapes"></div>
+
+<!-- Navigation -->
+<nav class="navbar">
+    <div class="container">
+        <div class="nav-brand">
+            <div class="logo">
+                <i class="fas fa-compress-alt"></i>
+                <span><span class="logo-highlight">ISMA</span> FileCompressor</span>
+            </div>
+            <div class="version-badge">v2.0</div>
+        </div>
+
+        <div class="nav-menu">
+            <a href="#upload" class="nav-link active">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Compress</span>
+            </a>
+            <a href="#features" class="nav-link">
+                <i class="fas fa-star"></i>
+                <span>Features</span>
+            </a>
+            <a href="#formats" class="nav-link">
+                <i class="fas fa-file-alt"></i>
+                <span>Formats</span>
+            </a>
+            <a href="#settings" class="nav-link">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+        </div>
+
+        <div class="nav-actions">
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
+                <i class="fas fa-moon"></i>
+                <i class="fas fa-sun"></i>
+            </button>
+            <button class="btn btn-outline" id="batchModeBtn">
+                <i class="fas fa-layer-group"></i>
+                <span>Batch Mode</span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="container">
+    <!-- Upload Section -->
+    <section id="upload" class="upload-section">
+        <div class="section-header">
+            <h1 class="section-title">
+                <span class="title-gradient">Compress Files</span>
+                <span class="title-sub">Without Losing Quality</span>
+            </h1>
+            <p class="section-description">
+                Smart compression for images, documents, videos, and archives.
+                Reduce file sizes by up to 90% with advanced algorithms.
+            </p>
+        </div>
+
+        <!-- Quality Selection Cards -->
+        <div class="quality-cards">
+            <div class="quality-card" data-quality="maximum">
+                <div class="quality-icon">
+                    <i class="fas fa-compress-arrows-alt"></i>
+                </div>
+                <h3>Maximum</h3>
+                <p>Smallest file size</p>
+                <div class="quality-indicator">
+                    <div class="quality-bar" style="width: 100%"></div>
+                </div>
+                <div class="quality-stats">
+                    <span>~80-90% saving</span>
+                    <span>Fastest</span>
+                </div>
+            </div>
+
+            <div class="quality-card active" data-quality="balanced">
+                <div class="quality-icon">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <h3>Balanced</h3>
+                <p>Recommended</p>
+                <div class="quality-indicator">
+                    <div class="quality-bar" style="width: 65%"></div>
+                </div>
+                <div class="quality-stats">
+                    <span>~60-75% saving</span>
+                    <span>Optimal</span>
+                </div>
+                <div class="selected-badge">
+                    <i class="fas fa-check"></i>
+                </div>
+            </div>
+
+            <div class="quality-card" data-quality="best">
+                <div class="quality-icon">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <h3>Best Quality</h3>
+                <p>Highest quality</p>
+                <div class="quality-indicator">
+                    <div class="quality-bar" style="width: 30%"></div>
+                </div>
+                <div class="quality-stats">
+                    <span>~30-50% saving</span>
+                    <span>Slowest</span>
+                </div>
+            </div>
+
+            <div class="quality-card flip-card" data-quality="custom">
+                <div class="flip-card-inner">
+                    <!-- Front of card -->
+                    <div class="flip-card-front">
+                        <div class="quality-icon">
+                            <i class="fas fa-sliders-h"></i>
+                        </div>
+                        <h3>Custom</h3>
+                        <p>Advanced settings</p>
+                        <div class="quality-indicator">
+                            <div class="quality-bar" style="width: 50%"></div>
+                        </div>
+                        <div class="quality-stats">
+                            <span>Adjustable</span>
+                            <span>Expert</span>
+                        </div>
+                    </div>
+                    <!-- Back of card (settings) -->
+                    <div class="flip-card-back">
+                        <h3>Custom Settings</h3>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label for="qualitySlider">Quality: <span id="qualityValue">75%</span></label>
+                                <input type="range" id="qualitySlider" min="10" max="95" value="75">
+                                <div class="slider-labels">
+                                    <span>Small Size</span>
+                                    <span>Best Quality</span>
+                                </div>
+                            </div>
+
+                            <div class="setting-item">
+                                <label for="formatSelect">Output Format:</label>
+                                <select id="formatSelect">
+                                    <option value="original">Keep Original</option>
+                                    <option value="webp">WebP (Best for web)</option>
+                                    <option value="jpg">JPEG</option>
+                                    <option value="png">PNG</option>
+                                    <option value="pdf">PDF</option>
+                                    <option value="mp4">MP4</option>
+                                </select>
+                            </div>
+
+                            <div class="setting-item">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="resizeToggle" checked>
+                                    <span class="checkbox-custom"></span>
+                                    <span>Resize large images</span>
+                                </label>
+                                <div class="setting-sub" id="resizeSettings">
+                                    <div class="size-inputs">
+                                        <input type="number" id="maxWidth" value="1920" min="100" max="5000">
+                                        <span>×</span>
+                                        <input type="number" id="maxHeight" value="1080" min="100" max="5000">
+                                        <span>pixels</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    </section>
+
+    <!-- Upload Panel Container - Full Width -->
+    <div class="upload-panel-wrapper">
+        <div class="upload-panel">
+            <!-- Upload Zone -->
+            <div class="upload-zone" id="uploadZone">
+                <div class="upload-content">
+                    <div class="upload-icon">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <div class="upload-pulse"></div>
+                    </div>
+
+                    <h2 class="upload-title">Drop files here</h2>
+                    <p class="upload-subtitle">or click to browse</p>
+
+                    <div class="supported-formats">
+                        <span class="format-tag">JPG</span>
+                        <span class="format-tag">PNG</span>
+                        <span class="format-tag">PDF</span>
+                        <span class="format-tag">MP4</span>
+                        <span class="format-tag">DOC</span>
+                        <span class="format-tag">ZIP</span>
+                        <span class="format-tag">+25 more</span>
+                    </div>
+
+                    <button class="btn btn-primary btn-upload">
+                        <i class="fas fa-folder-open"></i>
+                        Browse Files
+                    </button>
+
+                    <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp4,.mp3,.zip,.rar" hidden>
+                </div>
+            </div>
+
+            <!-- File Statistics -->
+            <div class="upload-stats">
+                <div class="stat">
+                    <div class="stat-icon">
+                        <i class="fas fa-file"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="totalFiles">0</div>
+                        <div class="stat-label">Files</div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon">
+                        <i class="fas fa-weight-hanging"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="totalSize">0 MB</div>
+                        <div class="stat-label">Total Size</div>
+                    </div>
+                </div>
+                <div class="stat">
+                    <div class="stat-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value" id="estimatedSave">0 MB</div>
+                        <div class="stat-label">Estimated Save</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File List -->
+            <div class="file-list" id="fileList">
+                <!-- Files will be added here -->
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-secondary" id="clearBtn">
+                    <i class="fas fa-trash"></i>
+                    Clear All
+                </button>
+                <button class="btn btn-primary btn-compress" id="compressBtn">
+                    <i class="fas fa-magic"></i>
+                    Compress Files
+                    <span class="btn-glow"></span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Processing Section -->
+    <section class="processing-section" id="processingSection" style="display: none;">
+        <div class="processing-card">
+            <div class="processing-header">
+                <h2><i class="fas fa-cogs"></i> Compression in Progress</h2>
+                <div class="processing-stats">
+                    <span id="processedCount">0</span>/<span id="totalCount">0</span> files
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                    <div class="progress-pulse"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="progressPercent">0%</span>
+                    <span id="remainingTime">Calculating...</span>
+                </div>
+            </div>
+
+            <div class="processing-files" id="processingFiles">
+                <!-- Processing items will be added here -->
+            </div>
+
+            <div class="processing-actions">
+                <button class="btn btn-outline" id="cancelBtn">
+                    <i class="fas fa-times"></i>
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section" id="resultsSection" style="display: none;">
+        <div class="results-card">
+            <div class="results-header">
+                <div class="results-success">
+                    <i class="fas fa-check-circle"></i>
+                    <h2>Compression Complete!</h2>
+                </div>
+                <button class="btn btn-outline" id="newCompressionBtn">
+                    <i class="fas fa-plus"></i>
+                    New Compression
+                </button>
+            </div>
+
+            <div class="results-stats">
+                <div class="result-stat">
+                    <div class="result-icon success">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <div class="result-text">
+                        <div class="result-value" id="successCount">0</div>
+                        <div class="result-label">Files Compressed</div>
+                    </div>
+                </div>
+
+                <div class="result-stat">
+                    <div class="result-icon size">
+                        <i class="fas fa-weight-hanging"></i>
+                    </div>
+                    <div class="result-text">
+                        <div class="result-value" id="totalSaved">0 MB</div>
+                        <div class="result-label">Total Saved</div>
+                    </div>
+                </div>
+
+                <div class="result-stat">
+                    <div class="result-icon ratio">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="result-text">
+                        <div class="result-value" id="compressionRatio">0%</div>
+                        <div class="result-label">Avg. Ratio</div>
+                    </div>
+                </div>
+
+                <div class="result-stat">
+                    <div class="result-icon time">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="result-text">
+                        <div class="result-value" id="totalTime">0s</div>
+                        <div class="result-label">Time Taken</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-actions">
+                <button class="btn btn-secondary" id="downloadAllBtn">
+                    <i class="fas fa-download"></i>
+                    Download All as ZIP
+                </button>
+                <button class="btn btn-primary" id="viewFilesBtn">
+                    <i class="fas fa-folder-open"></i>
+                    View Files
+                </button>
+            </div>
+
+            <div class="results-list" id="resultsList">
+                <!-- Results will be added here -->
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- Features Section -->
+<section class="features-section" id="features">
+    <div class="container">
+        <h2 class="section-title">Why Choose FileCompressor Pro?</h2>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3>Lightning Fast</h3>
+                <p>Parallel processing and GPU acceleration for ultra-fast compression</p>
+                <div class="feature-badge">3x faster</div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Secure & Private</h3>
+                <p>Files are processed locally, never uploaded to our servers</p>
+                <div class="feature-badge">GDPR compliant</div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h3>AI Optimization</h3>
+                <p>Smart algorithms analyze each file for optimal compression</p>
+                <div class="feature-badge">AI-powered</div>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-infinity"></i>
+                </div>
+                <h3>Batch Processing</h3>
+                <p>Compress hundreds of files simultaneously with batch mode</p>
+                <div class="feature-badge">Unlimited files</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="logo">
+                    <i class="fas fa-compress-alt"></i>
+                    <span><span class="logo-highlight">ISMA</span> FileCompressor</span>
+                </div>
+                <p>Advanced file compression for professionals and businesses</p>
+            </div>
+
+            <div class="footer-links">
+                <h4>Quick Links</h4>
+                <a href="#upload">Compress</a>
+                <a href="#features">Features</a>
+                <a href="#formats">Formats</a>
+                <a href="#settings">Settings</a>
+            </div>
+
+            <div class="footer-social">
+                <h4>Connect</h4>
+                <div class="social-icons">
+                    <a href="#" class="social-icon"><i class="fab fa-github"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+                    <a href="#" class="social-icon"><i class="fab fa-discord"></i></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <p>&copy; 2024 FileCompressor Pro. All rights reserved.</p>
+            <p>Made with <i class="fas fa-heart"></i> for efficient file management</p>
+        </div>
+    </div>
+</footer>
+
+<!-- JavaScript -->
+<script src="js/main.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/theme.js"></script>
+</body>
+</html>
