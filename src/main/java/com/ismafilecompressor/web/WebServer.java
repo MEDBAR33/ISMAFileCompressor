@@ -49,13 +49,7 @@ public class WebServer {
             LoggerUtil.logInfo(String.format("%s %s", request.requestMethod(), request.pathInfo()));
         });
 
-        // Serve static files
-        get("/*", (request, response) -> {
-            staticFiles.consume(request.raw(), response.raw());
-            return "";
-        });
-
-        // API Routes
+        // API Routes - MUST come BEFORE static file handler
         path("/api", () -> {
             // System info
             get("/info", this::getSystemInfo);
@@ -83,6 +77,15 @@ public class WebServer {
 
             // Session management
             delete("/session/:sessionId", this::deleteSession);
+            
+            // Open folder in file explorer
+            post("/open-folder", this::openFolder);
+        });
+
+        // Serve static files - MUST come AFTER API routes
+        get("/*", (request, response) -> {
+            staticFiles.consume(request.raw(), response.raw());
+            return "";
         });
 
         // WebSocket for real-time updates (commented out - requires additional setup)
@@ -222,8 +225,15 @@ public class WebServer {
                 return "{\"error\":\"Invalid compression options: " + e.getMessage() + "\"}";
             }
 
+            // Ensure output directory is set
+            if (options.getOutputDirectory() == null || options.getOutputDirectory().trim().isEmpty()) {
+                String outputDir = com.ismafilecompressor.config.AppConfig.getOutputFolder();
+                options.setOutputDirectory(outputDir);
+                LoggerUtil.logInfo("Output directory set to: " + outputDir);
+            }
+
             // Start compression in background
-            executorService.submit(() -> {
+            Future<?> compressionFuture = executorService.submit(() -> {
                 try {
                     session.setStatus("processing");
                     session.setStartTime(System.currentTimeMillis());
@@ -248,39 +258,75 @@ public class WebServer {
                     CompressionService.CompressionListener listener = new CompressionService.CompressionListener() {
                         @Override
                         public void onProgress(FileInfo fileInfo, int total, int processed) {
-                            session.updateProgress(fileInfo, total, processed);
-                            int progress = total > 0 ? (int) ((processed * 100.0) / total) : 0;
-                            session.setProgress(progress);
+                            session.setCurrentFile(fileInfo.getFileName());
                             session.setProcessedCount(processed);
+                            int progress = total > 0 ? (int) ((processed * 100.0) / total) : 0;
+                            progress = Math.min(100, progress); // Cap at 100%
+                            session.setProgress(progress);
+                            LoggerUtil.logInfo(String.format("Progress: %d/%d files (%d%%)", processed, total, progress));
                         }
 
                         @Override
                         public void onComplete(CompressionResult result) {
                             session.setResult(result);
-                            session.setStatus("completed");
+                            session.setProgress(100); // Ensure 100% on completion
+                            session.setProcessedCount(result.getFilesProcessed());
+                            // Only set to completed if there are successful files
+                            // If all files failed, status should be error (set in main thread)
+                            int totalFiles = session.getFiles().size();
+                            int failedFiles = result.getFilesFailed();
+                            int successFiles = result.getFilesProcessed() - failedFiles;
+                            
+                            if (totalFiles > 0 && successFiles == 0) {
+                                // All files failed
+                                session.setStatus("error");
+                                session.setError("All files failed to compress: " + result.getMessage());
+                                LoggerUtil.logInfo("Compression failed: " + result.getMessage());
+                            } else {
+                                // At least one file succeeded
+                                session.setStatus("completed");
+                                LoggerUtil.logInfo("Compression completed: " + result.getMessage());
+                            }
                             session.setEndTime(System.currentTimeMillis());
                         }
 
                         @Override
                         public void onError(FileInfo fileInfo, Exception e) {
                             session.addError(fileInfo, e);
+                            LoggerUtil.logError("File compression error: " + fileInfo.getFileName(), e);
                         }
                     };
 
                     compressionService.addListener(listener);
-                    CompressionResult result = compressionService.compressFiles(files, options);
+                    // Pass cancellation checker
+                    CompressionResult result = compressionService.compressFiles(files, options, 
+                        () -> session.isCancelled());
                     compressionService.removeListener(listener);
                     
+                    // Ensure completion status is set
                     session.setResult(result);
-                    session.setStatus("completed");
+                    session.setProgress(100);
+                    session.setProcessedCount(result.getFilesProcessed());
+                    // If all files failed, set status to error
+                    if (result.getFilesFailed() > 0 && result.getFilesFailed() >= result.getFilesProcessed()) {
+                        session.setStatus("error");
+                        session.setError("All files failed to compress: " + result.getMessage());
+                    } else {
+                        session.setStatus("completed");
+                    }
                     session.setEndTime(System.currentTimeMillis());
 
                 } catch (Exception e) {
                     session.setStatus("error");
-                    session.setError(e.getMessage());
+                    session.setError(e.getMessage() != null ? e.getMessage() : "Compression failed: " + e.getClass().getSimpleName());
+                    session.setEndTime(System.currentTimeMillis());
+                    session.setProgress(100); // Set to 100% so frontend knows it's done
                     LoggerUtil.logError("Compression failed", e);
                 }
             });
+            
+            // Store the future for cancellation
+            session.addCompressionTask(compressionFuture);
 
             res.type("application/json");
             return "{\"status\":\"started\",\"sessionId\":\"" + sessionId + "\"}";
@@ -355,23 +401,82 @@ public class WebServer {
     }
 
     private Object getCompressionProgress(Request req, Response res) {
-        String sessionId = req.params(":sessionId");
-        CompressionSession session = sessions.get(sessionId);
+        try {
+            String sessionId = req.params(":sessionId");
+            CompressionSession session = sessions.get(sessionId);
 
-        if (session == null) {
-            res.status(404);
-            return "{\"error\":\"Session not found\"}";
+            if (session == null) {
+                res.status(404);
+                res.type("application/json");
+                return "{\"error\":\"Session not found\"}";
+            }
+
+            Map<String, Object> progress = new HashMap<>();
+            progress.put("sessionId", sessionId);
+            progress.put("status", session.getStatus() != null ? session.getStatus() : "processing");
+        
+        // Calculate progress percentage
+        int totalFiles = session.getFiles().size();
+        int processedCount = session.getProcessedCount();
+        int progressPercent = totalFiles > 0 ? Math.round((processedCount * 100.0f) / totalFiles) : 0;
+        progressPercent = Math.max(progressPercent, session.getProgress()); // Use higher value
+        progressPercent = Math.min(100, progressPercent); // Cap at 100%
+        
+        progress.put("progress", progressPercent);
+        progress.put("totalFiles", totalFiles);
+        progress.put("processedFiles", processedCount);
+        progress.put("currentFile", session.getCurrentFile());
+        progress.put("estimatedTime", session.getEstimatedTime());
+        progress.put("formattedRemaining", session.getEstimatedTime());
+
+        // If completed, include result summary
+        boolean isCompletedStatus = "completed".equalsIgnoreCase(session.getStatus());
+        boolean hasResult = session.getResult() != null;
+        boolean allFilesProcessed = totalFiles > 0 && processedCount >= totalFiles;
+        
+        if (isCompletedStatus && hasResult) {
+            progress.put("result", session.getResultSummary());
+            // Ensure progress is 100% when completed
+            progress.put("progress", 100);
+            progress.put("processedFiles", session.getFiles().size());
+            // Ensure status is set to completed
+            progress.put("status", "completed");
+        } else if (allFilesProcessed && hasResult) {
+            // If all files are processed and result exists, treat as completed even if status isn't set
+            progress.put("result", session.getResultSummary());
+            progress.put("progress", 100);
+            progress.put("processedFiles", session.getFiles().size());
+            progress.put("status", "completed");
+            // Also update the session status
+            if (!isCompletedStatus) {
+                session.setStatus("completed");
+            }
+        } else if (allFilesProcessed && totalFiles > 0) {
+            // If all files processed but no result yet, still mark as 100% progress
+            progress.put("progress", 100);
+            progress.put("processedFiles", totalFiles);
         }
 
-        Map<String, Object> progress = new HashMap<>();
-        progress.put("sessionId", sessionId);
-        progress.put("status", session.getStatus());
-        progress.put("progress", session.getProgress());
-        progress.put("totalFiles", session.getFiles().size());
-        progress.put("processedFiles", session.getProcessedCount());
+        // If error, include error message
+        if ("error".equalsIgnoreCase(session.getStatus())) {
+            progress.put("error", session.getError() != null ? session.getError() : "Compression failed");
+        }
+        
+        // If cancelled, include status
+        if ("cancelled".equalsIgnoreCase(session.getStatus())) {
+            progress.put("error", "Compression was cancelled");
+        }
 
-        res.type("application/json");
-        return gson.toJson(progress);
+            res.type("application/json");
+            String jsonResponse = gson.toJson(progress);
+            LoggerUtil.logInfo("Progress response for session " + sessionId + ": status=" + session.getStatus() + ", progress=" + progress.get("progress"));
+            return jsonResponse;
+        } catch (Exception e) {
+            LoggerUtil.logError("Error getting compression progress", e);
+            res.status(500);
+            res.type("application/json");
+            return "{\"error\":\"Internal server error: " + e.getMessage() + "\"}";
+        }
     }
 
     private Object cancelCompression(Request req, Response res) {
@@ -380,11 +485,16 @@ public class WebServer {
 
         if (session == null) {
             res.status(404);
+            res.type("application/json");
             return "{\"error\":\"Session not found\"}";
         }
 
-        session.setStatus("cancelled");
-        return "{\"status\":\"cancelled\"}";
+        // Cancel the compression
+        session.setCancelled(true);
+        compressionService.cancel();
+        
+        res.type("application/json");
+        return "{\"status\":\"cancelled\",\"message\":\"Compression cancelled successfully\"}";
     }
 
     private Object getResults(Request req, Response res) {
@@ -465,6 +575,47 @@ public class WebServer {
         String sessionId = req.params(":sessionId");
         sessions.remove(sessionId);
         return "{\"success\":true}";
+    }
+    
+    private Object openFolder(Request req, Response res) {
+        try {
+            Map<String, Object> data = gson.fromJson(req.body(), Map.class);
+            String path = (String) data.get("path");
+            
+            if (path == null || path.isEmpty()) {
+                res.status(400);
+                return "{\"success\":false,\"error\":\"Path is required\"}";
+            }
+            
+            File folder = new File(path);
+            if (!folder.exists() || !folder.isDirectory()) {
+                res.status(404);
+                return "{\"success\":false,\"error\":\"Directory does not exist\"}";
+            }
+            
+            // Use ProcessBuilder to open folder in file explorer (cross-platform)
+            String os = System.getProperty("os.name").toLowerCase();
+            ProcessBuilder processBuilder;
+            if (os.contains("win")) {
+                // Windows - use explorer to open folder
+                String windowsPath = path.replace("/", "\\");
+                processBuilder = new ProcessBuilder("explorer.exe", windowsPath);
+            } else if (os.contains("mac")) {
+                // macOS
+                processBuilder = new ProcessBuilder("open", path);
+            } else {
+                // Linux
+                processBuilder = new ProcessBuilder("xdg-open", path);
+            }
+            processBuilder.start();
+            LoggerUtil.logInfo("Opened folder in file explorer: " + path);
+            return "{\"success\":true}";
+            
+        } catch (Exception e) {
+            LoggerUtil.logError("Failed to open folder", e);
+            res.status(500);
+            return "{\"success\":false,\"error\":\"" + e.getMessage() + "\"}";
+        }
     }
 
     // Use CompressionSession from separate file

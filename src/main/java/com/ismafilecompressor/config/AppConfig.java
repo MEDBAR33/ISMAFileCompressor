@@ -17,12 +17,15 @@ public class AppConfig {
         try {
             File configFile = new File(CONFIG_FILE);
             if (configFile.exists()) {
-                props.load(new FileInputStream(configFile));
+                try (FileInputStream fis = new FileInputStream(configFile)) {
+                    props.load(fis);
+                }
             } else {
                 setDefaults();
                 saveConfig();
             }
         } catch (Exception e) {
+            System.err.println("Warning: Could not load config file, using defaults: " + e.getMessage());
             setDefaults();
         }
     }
@@ -51,10 +54,10 @@ public class AppConfig {
     }
 
     public static void saveConfig() {
-        try {
-            props.store(new FileOutputStream(CONFIG_FILE), "FileCompressor Pro Configuration");
+        try (FileOutputStream fos = new FileOutputStream(CONFIG_FILE)) {
+            props.store(fos, "FileCompressor Pro Configuration");
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Warning: Could not save config file: " + e.getMessage());
         }
     }
 

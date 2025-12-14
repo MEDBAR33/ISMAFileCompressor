@@ -2,6 +2,8 @@ package com.ismafilecompressor.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 public class CompressionResult {
     private boolean success;
@@ -91,6 +93,26 @@ public class CompressionResult {
         if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
         if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
         return String.format("%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
+    }
+
+    public Map<String, Object> getResultSummary() {
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("success", success);
+        summary.put("message", message);
+        summary.put("filesProcessed", filesProcessed);
+        summary.put("filesFailed", filesFailed);
+        summary.put("totalFiles", files.size());
+        summary.put("totalOriginalSize", totalOriginalSize);
+        summary.put("totalCompressedSize", totalCompressedSize);
+        summary.put("totalSaved", getTotalSizeSaved());
+        summary.put("overallCompressionRatio", getOverallCompressionRatio());
+        summary.put("averageCompressionRatio", getAverageCompressionRatio());
+        summary.put("formattedOriginalSize", getFormattedTotalOriginalSize());
+        summary.put("formattedCompressedSize", getFormattedTotalCompressedSize());
+        summary.put("formattedSaved", getFormattedTotalSaved());
+        summary.put("timeMs", totalTimeMs);
+        summary.put("formattedTime", getFormattedTime());
+        return summary;
     }
 
     @Override

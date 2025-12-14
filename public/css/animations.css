@@ -1,0 +1,114 @@
+/* ===== ANIMATED BACKGROUND ===== */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+
+/* ===== ANIMATED HEADER ===== */
+.animated-header {
+    text-align: center;
+    margin-bottom: 2rem;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.animated-brand-line {
+    font-size: 3.5rem;
+    font-weight: 800;
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    perspective: 1000px;
+    min-height: 80px;
+    position: relative;
+}
+
+.word-cycle {
+    display: inline-block;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transform-style: preserve-3d;
+    font-size: 3.5rem;
+    font-weight: 800;
+    transition: transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.6s;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    text-align: center;
+}
+
+.brand-isma {
+    display: inline-block;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transform-style: preserve-3d;
+    font-size: 3.5rem;
+    font-weight: 800;
+    transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.8s;
+}
+
+.brand-compressor {
+    display: inline-block;
+    color: var(--text-primary);
+    font-size: 3.5rem;
+    font-weight: 800;
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsive adjustments for animated header */
+@media (max-width: 768px) {
+    .animated-brand-line {
+        font-size: 2.5rem;
+        gap: 12px;
+    }
+    
+    .word-cycle,
+    .brand-isma,
+    .brand-compressor {
+        font-size: 2.5rem;
+    }
+}
+
+/* Features description styling */
+.features-description {
+    max-width: 800px;
+    margin: 0 auto 3rem;
+    text-align: center;
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    padding: 0 20px;
+}
+

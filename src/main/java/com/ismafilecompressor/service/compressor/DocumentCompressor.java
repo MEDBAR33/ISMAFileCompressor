@@ -38,22 +38,58 @@ public class DocumentCompressor implements FileCompressor {
         try (ZipInputStream zis = new ZipInputStream(new FileInputStream(input));
              ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(output))) {
 
+            // Set compression level for the ZIP
+            if (options.getCompressionLevel().isAggressive()) {
+                zos.setLevel(9); // Maximum compression
+            } else if (options.getCompressionLevel() == CompressionOptions.CompressionLevel.BALANCED) {
+                zos.setLevel(6); // Balanced
+            } else {
+                zos.setLevel(1); // Best speed
+            }
+
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                zos.putNextEntry(new ZipEntry(entry.getName()));
+                ZipEntry newEntry = new ZipEntry(entry.getName());
+                newEntry.setTime(entry.getTime());
+                newEntry.setComment(entry.getComment());
+                newEntry.setExtra(entry.getExtra());
+                zos.putNextEntry(newEntry);
 
-                // Don't compress already compressed files inside
-                if (entry.getName().endsWith(".png") || entry.getName().endsWith(".jpg") ||
-                        entry.getName().endsWith(".jpeg")) {
+                // Compress images inside documents if aggressive compression is enabled
+                if (options.getCompressionLevel().isAggressive() && 
+                    (entry.getName().endsWith(".png") || entry.getName().endsWith(".jpg") ||
+                     entry.getName().endsWith(".jpeg"))) {
 
-                    // For images inside documents, we could compress them here
+                    // Read image data
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     zis.transferTo(baos);
-                    byte[] data = baos.toByteArray();
+                    byte[] imageData = baos.toByteArray();
 
-                    // TODO: Compress image data
-                    zos.write(data);
+                    // Try to compress the image using ImageCompressor
+                    try {
+                        File tempImage = File.createTempFile("doc_img_", 
+                            entry.getName().substring(entry.getName().lastIndexOf('.')));
+                        try (FileOutputStream fos = new FileOutputStream(tempImage)) {
+                            fos.write(imageData);
+                        }
+
+                        // Compress the image
+                        ImageCompressor imageCompressor = new ImageCompressor();
+                        File compressedImage = imageCompressor.compress(tempImage, options);
+                        
+                        // Read compressed image data
+                        byte[] compressedData = java.nio.file.Files.readAllBytes(compressedImage.toPath());
+                        zos.write(compressedData);
+                        
+                        // Clean up temp files
+                        tempImage.delete();
+                        compressedImage.delete();
+                    } catch (Exception e) {
+                        // If image compression fails, use original data
+                        zos.write(imageData);
+                    }
                 } else {
+                    // For non-image files or non-aggressive mode, just copy
                     zis.transferTo(zos);
                 }
 

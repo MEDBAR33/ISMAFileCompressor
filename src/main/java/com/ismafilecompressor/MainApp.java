@@ -27,11 +27,19 @@ public class MainApp extends Application {
     private void startWebServer() {
         try {
             webServer = new WebServer(WEB_PORT);
-            new Thread(() -> {
-                webServer.start();
-            }, "web-server").start();
+            Thread serverThread = new Thread(() -> {
+                try {
+                    webServer.start();
+                } catch (Exception e) {
+                    System.err.println("Web server error: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }, "web-server");
+            serverThread.setDaemon(true);
+            serverThread.start();
         } catch (Exception e) {
             System.err.println("Failed to start web server: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

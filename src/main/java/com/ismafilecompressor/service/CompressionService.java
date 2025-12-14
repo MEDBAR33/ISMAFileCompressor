@@ -7,6 +7,7 @@ import com.ismafilecompressor.util.FormatDetector;
 import com.ismafilecompressor.util.LoggerUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -71,14 +72,31 @@ public class CompressionService {
         return executorService.submit(() -> compressFiles(files, options));
     }
 
+    private volatile boolean cancelled = false;
+
+    public void cancel() {
+        this.cancelled = true;
+    }
+
     public CompressionResult compressFiles(List<File> files, CompressionOptions options) {
+        return compressFiles(files, options, null);
+    }
+
+    public CompressionResult compressFiles(List<File> files, CompressionOptions options, 
+                                           java.util.function.Supplier<Boolean> cancellationChecker) {
         CompressionResult result = new CompressionResult();
         result.setTimestamp(System.currentTimeMillis());
+        this.cancelled = false;
 
         if (files == null || files.isEmpty()) {
             result.setSuccess(false);
             result.setMessage("No files to compress");
             return result;
+        }
+
+        // Ensure output directory is set
+        if (options.getOutputDirectory() == null || options.getOutputDirectory().trim().isEmpty()) {
+            options.setOutputDirectory(com.ismafilecompressor.config.AppConfig.getOutputFolder());
         }
 
         List<Future<FileInfo>> futures = new ArrayList<>();
@@ -87,8 +105,18 @@ public class CompressionService {
         final AtomicInteger processedCount = new AtomicInteger(0);
 
         for (File file : files) {
-            futures.add(executorService.submit(() -> {
+            if (cancelled || (cancellationChecker != null && cancellationChecker.get())) {
+                result.setSuccess(false);
+                result.setMessage("Compression was cancelled");
+                break;
+            }
+
+            Future<FileInfo> future = executorService.submit(() -> {
                 try {
+                    if (cancelled || (cancellationChecker != null && cancellationChecker.get())) {
+                        throw new InterruptedException("Compression cancelled");
+                    }
+
                     FileInfo fileInfo = compressSingleFile(file, options);
                     int current = processedCount.incrementAndGet();
                     
@@ -98,6 +126,14 @@ public class CompressionService {
                     latch.countDown();
                     return fileInfo;
                 } catch (Exception e) {
+                    if (cancelled || (cancellationChecker != null && cancellationChecker.get())) {
+                        FileInfo errorInfo = new FileInfo(file.toPath());
+                        errorInfo.setStatus("Cancelled");
+                        errorInfo.setErrorMessage("Compression was cancelled");
+                        notifyProgress(errorInfo, totalFiles, processedCount.incrementAndGet());
+                        latch.countDown();
+                        return errorInfo;
+                    }
                     int current = processedCount.incrementAndGet();
                     FileInfo errorInfo = new FileInfo(file.toPath());
                     errorInfo.setStatus("Error");
@@ -106,7 +142,8 @@ public class CompressionService {
                     latch.countDown();
                     throw e;
                 }
-            }));
+            });
+            futures.add(future);
         }
 
         try {
@@ -143,6 +180,12 @@ public class CompressionService {
             Thread.currentThread().interrupt();
             result.setSuccess(false);
             result.setMessage("Compression was interrupted");
+            // Cancel all remaining tasks
+            for (Future<FileInfo> future : futures) {
+                if (!future.isDone()) {
+                    future.cancel(true);
+                }
+            }
         }
 
         result.setTotalTimeMs(System.currentTimeMillis() - result.getTimestamp());
@@ -151,11 +194,28 @@ public class CompressionService {
     }
 
     public FileInfo compressSingleFile(File file, CompressionOptions options) {
+        // Validate inputs
+        if (file == null || !file.exists()) {
+            FileInfo errorInfo = new FileInfo();
+            errorInfo.setStatus("Error");
+            errorInfo.setErrorMessage("File does not exist or is null");
+            return errorInfo;
+        }
+        
+        if (options == null) {
+            options = new CompressionOptions();
+        }
+        
         FileInfo fileInfo = new FileInfo(file.toPath());
         fileInfo.setOriginalSize(FileManager.getFileSize(file));
         fileInfo.setStatus("Processing");
 
         try {
+            // Validate file is readable
+            if (!file.canRead()) {
+                throw new IOException("File is not readable: " + file.getName());
+            }
+            
             // Detect file type
             FormatDetector.FileFormat format = FormatDetector.detect(file);
             fileInfo.setFileType(format.getCategory());
@@ -172,10 +232,29 @@ public class CompressionService {
             // Compress the file
             File outputFile = compressor.compress(file, options);
 
+            // Verify output file exists and get its size
+            if (!outputFile.exists()) {
+                throw new Exception("Compressed file was not created: " + outputFile.getPath());
+            }
+
+            long compressedSize = FileManager.getFileSize(outputFile);
+            long originalSize = fileInfo.getOriginalSize();
+
             fileInfo.setCompressed(outputFile.toPath());
-            fileInfo.setCompressedSize(FileManager.getFileSize(outputFile));
+            fileInfo.setCompressedSize(compressedSize);
             fileInfo.setStatus("Completed");
             fileInfo.setCompressionLevel(options.getCompressionLevel().getDisplayName());
+
+            // Log compression results
+            double compressionRatio = originalSize > 0 ? 
+                (1.0 - (double)compressedSize / originalSize) * 100.0 : 0.0;
+            LoggerUtil.logInfo(String.format(
+                "File: %s | Original: %s | Compressed: %s | Saved: %.1f%%",
+                file.getName(),
+                FileManager.formatFileSize(originalSize),
+                FileManager.formatFileSize(compressedSize),
+                compressionRatio
+            ));
 
             LoggerUtil.logFileInfo(fileInfo);
 

@@ -21,6 +21,8 @@ public class CompressionSession {
     private List<FileInfo> errors;
     private String tempDir;
     private List<Map<String, Object>> analysis;
+    private volatile boolean cancelled = false;
+    private List<java.util.concurrent.Future<?>> compressionTasks;
 
     public CompressionSession(String sessionId) {
         this.sessionId = sessionId;
@@ -30,6 +32,32 @@ public class CompressionSession {
         this.processedCount = 0;
         this.errors = new ArrayList<>();
         this.analysis = new ArrayList<>();
+        this.compressionTasks = new ArrayList<>();
+    }
+
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
+        if (cancelled) {
+            this.status = "cancelled";
+            // Cancel all compression tasks
+            if (compressionTasks != null) {
+                for (java.util.concurrent.Future<?> task : compressionTasks) {
+                    if (task != null && !task.isDone()) {
+                        task.cancel(true);
+                    }
+                }
+            }
+        }
+    }
+
+    public void addCompressionTask(java.util.concurrent.Future<?> task) {
+        if (compressionTasks != null) {
+            compressionTasks.add(task);
+        }
     }
 
     // Getters and Setters
@@ -159,7 +187,7 @@ public class CompressionSession {
         this.currentFile = fileInfo.getFileName();
         this.processedCount = processed;
         if (total > 0) {
-            this.progress = (int) ((processed * 100.0) / total);
+            this.progress = Math.min(100, (int) ((processed * 100.0) / total)); // Cap at 100%
         }
     }
 
@@ -192,6 +220,16 @@ public class CompressionSession {
         summary.put("totalCompressedSize", result.getTotalCompressedSize());
         summary.put("totalSaved", result.getTotalSizeSaved());
         summary.put("compressionRatio", result.getOverallCompressionRatio());
+        summary.put("overallCompressionRatio", result.getOverallCompressionRatio()); // Alias for frontend
+        summary.put("timeMs", result.getTotalTimeMs());
+        
+        // Include output directory information
+        if (options != null && options.getOutputDirectory() != null) {
+            summary.put("outputDirectory", options.getOutputDirectory());
+        } else {
+            summary.put("outputDirectory", com.ismafilecompressor.config.AppConfig.getOutputFolder());
+        }
+        
         return summary;
     }
 

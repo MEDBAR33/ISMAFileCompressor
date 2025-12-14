@@ -72,12 +72,21 @@ public class FileManager {
 
     public static File createOutputFile(File input, String prefix, String outputDir,
                                         String newExtension) throws IOException {
+        if (input == null) {
+            throw new IllegalArgumentException("Input file cannot be null");
+        }
+        
         Path parent;
         if (outputDir != null && !outputDir.trim().isEmpty()) {
             parent = Paths.get(outputDir);
             Files.createDirectories(parent);
         } else {
-            parent = input.toPath().getParent();
+            Path inputPath = input.toPath().getParent();
+            if (inputPath == null) {
+                parent = Paths.get(System.getProperty("user.dir"));
+            } else {
+                parent = inputPath;
+            }
         }
 
         String originalName = input.getName();
@@ -102,6 +111,9 @@ public class FileManager {
     }
 
     public static long getFileSize(File file) {
+        if (file == null || !file.exists()) {
+            return 0;
+        }
         try {
             return Files.size(file.toPath());
         } catch (IOException e) {
@@ -110,6 +122,7 @@ public class FileManager {
     }
 
     public static String formatFileSize(long bytes) {
+        if (bytes < 0) return "0 B";
         if (bytes < 1024) return bytes + " B";
         if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
         if (bytes < 1024 * 1024 * 1024) return String.format("%.1f MB", bytes / (1024.0 * 1024.0));

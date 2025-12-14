@@ -6,12 +6,25 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeQualitySelection();
     initializeNavigation();
     initializeCustomSettings();
+    initializeAnimatedHeader();
+    initializeFeatureCards();
     
     // Check if we're on the upload section
     if (window.location.hash === '#upload' || !window.location.hash) {
         // Already initialized by upload.js
     }
 });
+
+function initializeFeatureCards() {
+    const featureCards = document.querySelectorAll('.flip-feature-card');
+    
+    featureCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Toggle flipped class
+            this.classList.toggle('flipped');
+        });
+    });
+}
 
 function initializeQualitySelection() {
     const qualityCards = document.querySelectorAll('.quality-card');
@@ -67,6 +80,15 @@ function initializeQualitySelection() {
             // Update selected quality
             window.selectedQuality = this.dataset.quality;
             console.log('Selected quality:', window.selectedQuality);
+            
+            // Trigger event to update estimated savings
+            const event = new CustomEvent('qualityChanged', { detail: { quality: this.dataset.quality } });
+            document.dispatchEvent(event);
+            
+            // Also directly update stats if files are already uploaded
+            if (typeof updateStats === 'function') {
+                updateStats();
+            }
         });
     });
 }
@@ -87,13 +109,35 @@ function initializeNavigation() {
             // Scroll to section
             const targetId = this.getAttribute('href');
             if (targetId && targetId !== '#') {
-                const target = document.querySelector(targetId);
-                if (target) {
-                    target.scrollIntoView({ behavior: 'smooth' });
+                // Special handling for Contact Us - scroll to contact section inside formats
+                if (targetId === '#formats' && this.textContent.includes('Contact')) {
+                    setTimeout(() => {
+                        const contactSection = document.querySelector('#contact');
+                        if (contactSection) {
+                            contactSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 100);
+                } else {
+                    const target = document.querySelector(targetId);
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth' });
+                    }
                 }
             }
         });
     });
+    
+    // Handle Developers button click
+    const developersBtn = document.getElementById('developersBtn');
+    if (developersBtn) {
+        developersBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const developersSection = document.querySelector('#developers');
+            if (developersSection) {
+                developersSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    }
 }
 
 function initializeCustomSettings() {
@@ -201,6 +245,85 @@ async function apiCall(endpoint, method = 'GET', data = null) {
         console.error('API call failed:', error);
         throw error;
     }
+}
+
+function initializeAnimatedHeader() {
+    const words = ['Incredible', 'Smart', 'Magnificent', 'Adorable'];
+    const wordCycle = document.getElementById('wordCycle');
+    const brandIsma = document.getElementById('brandIsma');
+    const brandCompressor = document.getElementById('brandCompressor');
+    
+    if (!wordCycle || !brandIsma || !brandCompressor) return;
+    
+    let currentWordIndex = 0;
+    
+    // Initial state - show first word centered
+    wordCycle.textContent = words[0];
+    wordCycle.style.transform = 'translateX(-50%) rotateX(0deg)';
+    wordCycle.style.opacity = '1';
+    
+    // Hide ISMA and FileCompressor initially
+    brandIsma.style.transform = 'rotateY(90deg)';
+    brandIsma.style.opacity = '0';
+    brandCompressor.style.opacity = '0';
+    brandCompressor.style.transform = 'translateX(-20px)';
+    
+    let step = 0;
+    
+    function animate() {
+        step++;
+        
+        if (step <= 4) {
+            // Phase 1: Cycle through words (4 words)
+            if (step < 4) {
+                // Flip out current word
+                wordCycle.style.transform = 'translateX(-50%) rotateX(90deg)';
+                wordCycle.style.opacity = '0';
+                
+                setTimeout(() => {
+                    // Change to next word
+                    currentWordIndex = (currentWordIndex + 1) % words.length;
+                    wordCycle.textContent = words[currentWordIndex];
+                    
+                    // Flip in new word (centered)
+                    wordCycle.style.transform = 'translateX(-50%) rotateX(0deg)';
+                    wordCycle.style.opacity = '1';
+                }, 600);
+            } else {
+                // After 4th word, hide and show ISMA
+                wordCycle.style.transform = 'translateX(-50%) rotateX(90deg)';
+                wordCycle.style.opacity = '0';
+                
+                setTimeout(() => {
+                    brandIsma.style.transform = 'rotateY(0deg)';
+                    brandIsma.style.opacity = '1';
+                    
+                    // Show FileCompressor after ISMA appears
+                    setTimeout(() => {
+                        brandCompressor.style.opacity = '1';
+                        brandCompressor.style.transform = 'translateX(0)';
+                    }, 800);
+                }, 600);
+            }
+        } else if (step === 6) {
+            // After showing ISMA FileCompressor, reset
+            setTimeout(() => {
+                // Reset everything
+                currentWordIndex = 0;
+                step = 0;
+                wordCycle.textContent = words[0];
+                wordCycle.style.transform = 'translateX(-50%) rotateX(0deg)';
+                wordCycle.style.opacity = '1';
+                brandIsma.style.transform = 'rotateY(90deg)';
+                brandIsma.style.opacity = '0';
+                brandCompressor.style.opacity = '0';
+                brandCompressor.style.transform = 'translateX(-20px)';
+            }, 2500); // Show ISMA FileCompressor for 2.5 seconds
+        }
+    }
+    
+    // Start animation cycle - each step is 2.5 seconds
+    setInterval(animate, 2500);
 }
 
 // Export for use in other files

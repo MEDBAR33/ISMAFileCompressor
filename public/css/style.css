@@ -331,7 +331,7 @@ h1, h2, h3, h4, h5, h6 {
     padding: 24px;
     text-align: center;
     cursor: pointer;
-    transition: var(--transition);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     border: 2px solid transparent;
     display: flex;
@@ -341,16 +341,48 @@ h1, h2, h3, h4, h5, h6 {
     box-sizing: border-box;
     min-height: 240px; /* Fixed height to match flipped Custom card */
     height: 240px;
+    box-shadow: var(--shadow-md);
+    transform: translateY(0);
 }
 
-.quality-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
+.quality-card:hover:not(.active) {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.dark-theme .quality-card:hover:not(.active) {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Apply shadow to flip card front/back on hover (non-active only) */
+.quality-card.flip-card:hover:not(.active) .flip-card-front,
+.quality-card.flip-card:hover:not(.active) .flip-card-back {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.dark-theme .quality-card.flip-card:hover:not(.active) .flip-card-front,
+.dark-theme .quality-card.flip-card:hover:not(.active) .flip-card-back {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
 .quality-card.active {
-    border-color: var(--primary);
-    box-shadow: var(--shadow-md);
+    border: 2px solid var(--primary);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+    transform: translateY(-4px) !important;
+}
+
+.dark-theme .quality-card.active {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Ensure active card keeps its position even on hover */
+.quality-card.active:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.dark-theme .quality-card.active:hover {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
 /* Remove border from Custom card when not active */
@@ -361,12 +393,17 @@ h1, h2, h3, h4, h5, h6 {
 
 .quality-card.flip-card.active .flip-card-front,
 .quality-card.flip-card.active .flip-card-back {
-    border-color: var(--primary);
+    border: 2px solid var(--primary);
 }
 
 .quality-icon {
     width: 64px;
     height: 64px;
+    min-width: 64px;
+    min-height: 64px;
+    max-width: 64px;
+    max-height: 64px;
+    aspect-ratio: 1 / 1;
     margin: 0 auto 16px;
     background: var(--gradient-primary);
     border-radius: 50%;
@@ -375,6 +412,8 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: center;
     font-size: 24px;
     color: white;
+    flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 .quality-card[data-quality="maximum"] .quality-icon {
@@ -410,6 +449,37 @@ h1, h2, h3, h4, h5, h6 {
     transform: rotateY(180deg);
 }
 
+/* Apply translateY and shadow to active flip card - the card itself lifts */
+.quality-card.flip-card.active {
+    transform: translateY(-4px) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.dark-theme .quality-card.flip-card.active {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Active flip card shadow on front/back */
+.quality-card.flip-card.active .flip-card-front,
+.quality-card.flip-card.active .flip-card-back {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+}
+
+.dark-theme .quality-card.flip-card.active .flip-card-front,
+.dark-theme .quality-card.flip-card.active .flip-card-back {
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* When flipped and active, maintain rotation on inner */
+.quality-card.flip-card.active.flipped .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+/* Hover effect for flip cards - transform the parent card */
+.quality-card.flip-card:hover:not(.active) {
+    transform: translateY(-4px) !important;
+}
+
 .flip-card-front,
 .flip-card-back {
     position: absolute;
@@ -427,6 +497,7 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: var(--shadow-md);
     box-sizing: border-box;
     overflow: hidden; /* Prevent content overflow */
+    transition: var(--transition);
 }
 
 .flip-card-front {
@@ -526,9 +597,22 @@ h1, h2, h3, h4, h5, h6 {
 
 .quality-stats {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
     color: var(--text-tertiary);
+}
+
+.quality-saving {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.quality-speed {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-style: italic;
 }
 
 .selected-badge {
@@ -860,9 +944,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .progress-fill {
     height: 100%;
-    background: var(--gradient-primary);
+    background: linear-gradient(90deg, #27d27d, #2ecc71, #27ae60);
     width: 0%;
-    transition: width 0.3s ease;
+    transition: width 0.3s ease-out, background 0.2s ease-out;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
 }
 
 .progress-pulse {
@@ -873,9 +959,10 @@ h1, h2, h3, h4, h5, h6 {
     bottom: 0;
     background: linear-gradient(90deg,
     transparent,
-    rgba(255, 255, 255, 0.3),
+    rgba(46, 204, 113, 0.4),
     transparent);
     animation: progressPulse 1.5s infinite;
+    pointer-events: none;
 }
 
 @keyframes progressPulse {
@@ -893,3 +980,5 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ===== RESULTS ===== */
 .results-card {
+    /* Results card styles will be added here */
+}

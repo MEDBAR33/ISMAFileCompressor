@@ -8,6 +8,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/new_sections.css">
+    <link rel="stylesheet" href="css/footer.css">
     <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 </head>
 <body>
@@ -39,9 +41,9 @@
                 <i class="fas fa-file-alt"></i>
                 <span>Formats</span>
             </a>
-            <a href="#settings" class="nav-link">
-                <i class="fas fa-cog"></i>
-                <span>Settings</span>
+            <a href="#formats" class="nav-link">
+                <i class="fas fa-envelope"></i>
+                <span>Contact Us</span>
             </a>
         </div>
 
@@ -50,9 +52,9 @@
                 <i class="fas fa-moon"></i>
                 <i class="fas fa-sun"></i>
             </button>
-            <button class="btn btn-outline" id="batchModeBtn">
-                <i class="fas fa-layer-group"></i>
-                <span>Batch Mode</span>
+            <button class="btn btn-outline" id="developersBtn">
+                <i class="fas fa-users"></i>
+                <span>Developers</span>
             </button>
         </div>
     </div>
@@ -85,8 +87,8 @@
                     <div class="quality-bar" style="width: 100%"></div>
                 </div>
                 <div class="quality-stats">
-                    <span>~80-90% saving</span>
-                    <span>Fastest</span>
+                    <div class="quality-saving">~75-95% saving</div>
+                    <div class="quality-speed">Fastest</div>
                 </div>
             </div>
 
@@ -100,8 +102,8 @@
                     <div class="quality-bar" style="width: 65%"></div>
                 </div>
                 <div class="quality-stats">
-                    <span>~60-75% saving</span>
-                    <span>Optimal</span>
+                    <div class="quality-saving">~50-70% saving</div>
+                    <div class="quality-speed">Optimal</div>
                 </div>
                 <div class="selected-badge">
                     <i class="fas fa-check"></i>
@@ -118,8 +120,8 @@
                     <div class="quality-bar" style="width: 30%"></div>
                 </div>
                 <div class="quality-stats">
-                    <span>~30-50% saving</span>
-                    <span>Slowest</span>
+                    <div class="quality-saving">~10-40% saving</div>
+                    <div class="quality-speed">Slowest</div>
                 </div>
             </div>
 
@@ -136,8 +138,8 @@
                             <div class="quality-bar" style="width: 50%"></div>
                         </div>
                         <div class="quality-stats">
-                            <span>Adjustable</span>
-                            <span>Expert</span>
+                            <div class="quality-saving">Adjustable</div>
+                            <div class="quality-speed">Expert</div>
                         </div>
                     </div>
                     <!-- Back of card (settings) -->
@@ -215,7 +217,7 @@
                         Browse Files
                     </button>
 
-                    <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.gif,.bmp,.tiff,.webp,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp4,.mp3,.zip,.rar" hidden>
+                    <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.gif,.bmp,.tiff,.tif,.webp,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.mp3,.wav,.flac,.aac,.ogg,.m4a,.wma,.mp4,.avi,.mkv,.mov,.wmv,.flv,.webm,.m4v,.mpg,.mpeg,.zip,.rar,.7z,.tar,.gz,.bz2,.xz" style="display: none;">
                 </div>
             </div>
 
@@ -287,7 +289,7 @@
                 </div>
                 <div class="progress-text">
                     <span id="progressPercent">0%</span>
-                    <span id="remainingTime">Calculating...</span>
+                    <span id="remainingTime">Compressing...</span>
                 </div>
             </div>
 
@@ -309,61 +311,49 @@
         <div class="results-card">
             <div class="results-header">
                 <div class="results-success">
-                    <i class="fas fa-check-circle"></i>
-                    <h2>Compression Complete!</h2>
+                    <h2><i class="fas fa-check-circle"></i> Compression Complete!</h2>
                 </div>
-                <button class="btn btn-outline" id="newCompressionBtn">
-                    <i class="fas fa-plus"></i>
-                    New Compression
-                </button>
             </div>
 
             <div class="results-stats">
                 <div class="result-stat">
-                    <div class="result-icon success">
-                        <i class="fas fa-check"></i>
-                    </div>
                     <div class="result-text">
-                        <div class="result-value" id="successCount">0</div>
-                        <div class="result-label">Files Compressed</div>
+                        <div class="result-value"><i class="fas fa-check"></i> <span id="successCount">0</span> <span class="result-label">Files Compressed</span></div>
+                    </div>
+                </div>
+                <div class="output-directory" id="outputDirectory" style="display: none; width: 100%; margin-top: 20px; padding: 15px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-folder-open" style="color: var(--primary);"></i>
+                        <div>
+                            <strong style="color: var(--text-primary);">Compressed files saved to:</strong>
+                            <div style="color: var(--text-secondary); margin-top: 5px; word-break: break-all;" id="outputDirectoryPath"></div>
+                        </div>
                     </div>
                 </div>
 
                 <div class="result-stat">
-                    <div class="result-icon size">
-                        <i class="fas fa-weight-hanging"></i>
-                    </div>
                     <div class="result-text">
-                        <div class="result-value" id="totalSaved">0 MB</div>
-                        <div class="result-label">Total Saved</div>
+                        <div class="result-value"><i class="fas fa-weight-hanging"></i> <span id="totalSaved">0 MB</span> <span class="result-label">Total Saved</span></div>
                     </div>
                 </div>
 
                 <div class="result-stat">
-                    <div class="result-icon ratio">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
                     <div class="result-text">
-                        <div class="result-value" id="compressionRatio">0%</div>
-                        <div class="result-label">Avg. Ratio</div>
+                        <div class="result-value"><i class="fas fa-chart-line"></i> <span id="compressionRatio">0%</span> <span class="result-label">Avg. Ratio</span></div>
                     </div>
                 </div>
 
                 <div class="result-stat">
-                    <div class="result-icon time">
-                        <i class="fas fa-clock"></i>
-                    </div>
                     <div class="result-text">
-                        <div class="result-value" id="totalTime">0s</div>
-                        <div class="result-label">Time Taken</div>
+                        <div class="result-value"><i class="fas fa-clock"></i> <span id="totalTime">0s</span> <span class="result-label">Time Taken</span></div>
                     </div>
                 </div>
             </div>
 
             <div class="results-actions">
-                <button class="btn btn-secondary" id="downloadAllBtn">
-                    <i class="fas fa-download"></i>
-                    Download All as ZIP
+                <button class="btn btn-secondary" id="newCompressionBtn">
+                    <i class="fas fa-plus"></i>
+                    New Compression
                 </button>
                 <button class="btn btn-primary" id="viewFilesBtn">
                     <i class="fas fa-folder-open"></i>
@@ -381,43 +371,234 @@
 <!-- Features Section -->
 <section class="features-section" id="features">
     <div class="container">
-        <h2 class="section-title">Why Choose FileCompressor Pro?</h2>
+        <!-- Animated Header -->
+        <div class="animated-header">
+            <div class="animated-brand-line">
+                <span class="word-cycle" id="wordCycle">Incredible</span>
+                <span class="brand-isma" id="brandIsma">ISMA</span>
+                <span class="brand-compressor" id="brandCompressor">FileCompressor</span>
+            </div>
+        </div>
+        
+        <h2 class="section-title">Why Choose ISMA FileCompressor?</h2>
+        <p class="features-description">
+            Experience the perfect blend of cutting-edge technology and user-friendly design. 
+            Our intelligent compression algorithms reduce file sizes dramatically while preserving quality, 
+            making it the go-to solution for professionals, businesses, and individuals who value efficiency and privacy.
+        </p>
 
         <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-bolt"></i>
+            <div class="feature-card flip-feature-card">
+                <div class="flip-feature-inner">
+                    <div class="flip-feature-front">
+                        <div class="feature-header">
+                            <i class="fas fa-bolt feature-icon"></i>
+                            <h3>Lightning Fast</h3>
+                        </div>
+                        <p>Parallel processing and GPU acceleration for ultra-fast compression</p>
+                    </div>
+                    <div class="flip-feature-back">
+                        <div class="feature-badge-large">3x faster</div>
+                    </div>
                 </div>
-                <h3>Lightning Fast</h3>
-                <p>Parallel processing and GPU acceleration for ultra-fast compression</p>
-                <div class="feature-badge">3x faster</div>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-shield-alt"></i>
+            <div class="feature-card flip-feature-card">
+                <div class="flip-feature-inner">
+                    <div class="flip-feature-front">
+                        <div class="feature-header">
+                            <i class="fas fa-shield-alt feature-icon"></i>
+                            <h3>Secure & Private</h3>
+                        </div>
+                        <p>Files are processed locally, never uploaded to our servers</p>
+                    </div>
+                    <div class="flip-feature-back">
+                        <div class="feature-badge-large">GDPR compliant</div>
+                    </div>
                 </div>
-                <h3>Secure & Private</h3>
-                <p>Files are processed locally, never uploaded to our servers</p>
-                <div class="feature-badge">GDPR compliant</div>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-brain"></i>
+            <div class="feature-card flip-feature-card">
+                <div class="flip-feature-inner">
+                    <div class="flip-feature-front">
+                        <div class="feature-header">
+                            <i class="fas fa-brain feature-icon"></i>
+                            <h3>AI Optimization</h3>
+                        </div>
+                        <p>Smart algorithms analyze each file for optimal compression</p>
+                    </div>
+                    <div class="flip-feature-back">
+                        <div class="feature-badge-large">AI-powered</div>
+                    </div>
                 </div>
-                <h3>AI Optimization</h3>
-                <p>Smart algorithms analyze each file for optimal compression</p>
-                <div class="feature-badge">AI-powered</div>
             </div>
 
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-infinity"></i>
+            <div class="feature-card flip-feature-card">
+                <div class="flip-feature-inner">
+                    <div class="flip-feature-front">
+                        <div class="feature-header">
+                            <i class="fas fa-infinity feature-icon"></i>
+                            <h3>Batch Processing</h3>
+                        </div>
+                        <p>Compress hundreds of files simultaneously with batch mode</p>
+                    </div>
+                    <div class="flip-feature-back">
+                        <div class="feature-badge-large">Mass scale ready</div>
+                    </div>
                 </div>
-                <h3>Batch Processing</h3>
-                <p>Compress hundreds of files simultaneously with batch mode</p>
-                <div class="feature-badge">Unlimited files</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Supported Formats Section -->
+<section class="formats-section" id="formats">
+    <div class="container">
+        <h2 class="section-title">Supported File Formats</h2>
+        <p class="section-description">We support a wide range of file types across multiple categories</p>
+
+        <div class="formats-grid">
+            <div class="format-category">
+                <div class="category-header">
+                    <i class="fas fa-image"></i>
+                    <h3>Images</h3>
+                </div>
+                <div class="format-list">
+                    <span class="format-tag">JPG</span>
+                    <span class="format-tag">JPEG</span>
+                    <span class="format-tag">PNG</span>
+                    <span class="format-tag">GIF</span>
+                    <span class="format-tag">BMP</span>
+                    <span class="format-tag">TIFF</span>
+                    <span class="format-tag">WebP</span>
+                    <span class="format-tag">SVG</span>
+                </div>
+            </div>
+
+            <div class="format-category">
+                <div class="category-header">
+                    <i class="fas fa-file-pdf"></i>
+                    <h3>Documents</h3>
+                </div>
+                <div class="format-list">
+                    <span class="format-tag">PDF</span>
+                    <span class="format-tag">DOC</span>
+                    <span class="format-tag">DOCX</span>
+                    <span class="format-tag">PPT</span>
+                    <span class="format-tag">PPTX</span>
+                    <span class="format-tag">XLS</span>
+                    <span class="format-tag">XLSX</span>
+                    <span class="format-tag">TXT</span>
+                    <span class="format-tag">RTF</span>
+                </div>
+            </div>
+
+            <div class="format-category">
+                <div class="category-header">
+                    <i class="fas fa-video"></i>
+                    <h3>Video</h3>
+                </div>
+                <div class="format-list">
+                    <span class="format-tag">MP4</span>
+                    <span class="format-tag">AVI</span>
+                    <span class="format-tag">MKV</span>
+                    <span class="format-tag">MOV</span>
+                    <span class="format-tag">WMV</span>
+                    <span class="format-tag">FLV</span>
+                    <span class="format-tag">WebM</span>
+                    <span class="format-tag">M4V</span>
+                    <span class="format-tag">MPG</span>
+                    <span class="format-tag">MPEG</span>
+                </div>
+            </div>
+
+            <div class="format-category">
+                <div class="category-header">
+                    <i class="fas fa-music"></i>
+                    <h3>Audio</h3>
+                </div>
+                <div class="format-list">
+                    <span class="format-tag">MP3</span>
+                    <span class="format-tag">WAV</span>
+                    <span class="format-tag">FLAC</span>
+                    <span class="format-tag">AAC</span>
+                    <span class="format-tag">OGG</span>
+                    <span class="format-tag">M4A</span>
+                    <span class="format-tag">WMA</span>
+                </div>
+            </div>
+
+            <div class="format-category">
+                <div class="category-header">
+                    <i class="fas fa-file-archive"></i>
+                    <h3>Archives</h3>
+                </div>
+                <div class="format-list">
+                    <span class="format-tag">ZIP</span>
+                    <span class="format-tag">RAR</span>
+                    <span class="format-tag">7Z</span>
+                    <span class="format-tag">TAR</span>
+                    <span class="format-tag">GZ</span>
+                    <span class="format-tag">BZ2</span>
+                    <span class="format-tag">XZ</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Us Section -->
+        <div class="contact-section" id="contact">
+            <h3 class="contact-title">Contact Us</h3>
+            <p class="contact-description">Reach out to us through any of these platforms</p>
+            <div class="contact-links">
+                <a href="https://x.com/barrar_moh40157" target="_blank" class="contact-link" id="twitterLink" title="Follow us on X (Twitter)">
+                    <i class="fab fa-x"></i>
+                    <span>X (Twitter)</span>
+                </a>
+                <a href="https://github.com/MEDBAR33" target="_blank" class="contact-link" id="githubLink" title="Visit our GitHub">
+                    <i class="fab fa-github"></i>
+                    <span>GitHub</span>
+                </a>
+                <a href="mailto:mbar0303@gmail.com" class="contact-link" id="gmailLink" title="Send us an email">
+                    <i class="fas fa-envelope"></i>
+                    <span>Gmail</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Developers Section -->
+<section class="developers-section" id="developers">
+    <div class="container">
+        <h2 class="section-title">Meet the Developers</h2>
+        <p class="section-description">The talented team behind ISMA FileCompressor</p>
+
+        <div class="developers-grid">
+            <div class="developer-card">
+                <div class="developer-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <h3 class="developer-name">Mohamed Barrar</h3>
+                <p class="developer-role">The brain behind the Algorithms and System Architecture</p>
+                <p class="developer-dream">He is dreaming about everything but got Nothing 😄</p>
+            </div>
+
+            <div class="developer-card">
+                <div class="developer-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <h3 class="developer-name">Cafrida Soufyane</h3>
+                <p class="developer-role">The Artist behind the Colors and Frontend</p>
+                <p class="developer-dream">He is Dreaming about cars all the time 🚗</p>
+            </div>
+
+            <div class="developer-card">
+                <div class="developer-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <h3 class="developer-name">Youssef Ait Lasiri</h3>
+                <p class="developer-role">The bridge between the Frontend and the Backend</p>
+                <p class="developer-dream">His Dream is to be a footballer ⚽</p>
             </div>
         </div>
     </div>
@@ -433,28 +614,24 @@
                     <span><span class="logo-highlight">ISMA</span> FileCompressor</span>
                 </div>
                 <p>Advanced file compression for professionals and businesses</p>
-            </div>
-
-            <div class="footer-links">
-                <h4>Quick Links</h4>
-                <a href="#upload">Compress</a>
-                <a href="#features">Features</a>
-                <a href="#formats">Formats</a>
-                <a href="#settings">Settings</a>
-            </div>
-
-            <div class="footer-social">
-                <h4>Connect</h4>
-                <div class="social-icons">
-                    <a href="#" class="social-icon"><i class="fab fa-github"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="social-icon"><i class="fab fa-discord"></i></a>
+                
+                <div class="footer-links">
+                    <h4>Quick Links</h4>
+                    <div class="footer-links-container">
+                        <a href="#upload">Compress</a>
+                        <a href="#features">Features</a>
+                        <a href="#formats">Formats</a>
+                        <a href="#contact">Contact Us</a>
+                        <a href="#developers">Developers</a>
+                    </div>
                 </div>
             </div>
+
+
         </div>
 
         <div class="footer-bottom">
-            <p>&copy; 2024 FileCompressor Pro. All rights reserved.</p>
+            <p>&copy; 2025 ISMA FileCompressor. All rights reserved.</p>
             <p>Made with <i class="fas fa-heart"></i> for efficient file management</p>
         </div>
     </div>
