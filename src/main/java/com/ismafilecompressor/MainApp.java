@@ -1,24 +1,35 @@
 package com.ismafilecompressor;
 
 import com.ismafilecompressor.web.WebServer;
-import java.util.Scanner;
 
 public class MainApp {
     private static WebServer webServer;
-    private static final int WEB_PORT = 8080;
 
     public static void main(String[] args) {
         System.out.println("🚀 Starting ISMA FileCompressor...");
         
+        // Read port from environment variable (for cloud hosting like Render)
+        // Default to 8080 if not set
+        String portEnv = System.getenv("PORT");
+        int port = 8080;
+        if (portEnv != null && !portEnv.isEmpty()) {
+            try {
+                port = Integer.parseInt(portEnv);
+                System.out.println("📡 Using PORT from environment: " + port);
+            } catch (NumberFormatException e) {
+                System.err.println("⚠️  Invalid PORT environment variable: " + portEnv + ", using default 8080");
+            }
+        } else {
+            System.out.println("📡 Using default port: 8080");
+        }
+        
         try {
             // Start Web Server
-            webServer = new WebServer(WEB_PORT);
+            webServer = new WebServer(port);
             webServer.start();
             
             System.out.println("✅ Web server started successfully!");
-            System.out.println("🌐 Web Interface: http://localhost:" + WEB_PORT);
-            System.out.println("📝 Open your browser and navigate to the URL above");
-            System.out.println("⏹️  Press 'q' and Enter to stop the server");
+            System.out.println("🌐 Web Interface available on port: " + port);
             
             // Add shutdown hook for graceful shutdown
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -28,16 +39,13 @@ public class MainApp {
                 }
             }));
             
-            // Wait for user input to stop
-            Scanner scanner = new Scanner(System.in);
-            while (true) {
-                String input = scanner.nextLine();
-                if ("q".equalsIgnoreCase(input.trim())) {
-                    break;
-                }
-            }
-            scanner.close();
+            // Keep the application running (for cloud hosting)
+            // The server will run until the process is terminated
+            Thread.currentThread().join();
             
+        } catch (InterruptedException e) {
+            System.out.println("👋 Server interrupted. Shutting down...");
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             System.err.println("❌ Failed to start web server: " + e.getMessage());
             e.printStackTrace();

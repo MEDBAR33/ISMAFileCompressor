@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: isma-filecompressor
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: PORT
+        sync: false
+      - key: JAVA_OPTS
+        value: -Xmx512m -Xms256m
+    healthCheckPath: /
+    autoDeploy: true
+
