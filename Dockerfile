@@ -11,7 +11,8 @@ RUN mvn dependency:go-offline -B
 # Copy source code and build
 COPY src ./src
 COPY public ./public
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -DskipTests -B && \
+    find target -name "*.jar" ! -name "original-*.jar" -exec cp {} target/app.jar \;
 
 # Stage 2: Runtime image
 FROM eclipse-temurin:21-jre-alpine
@@ -22,7 +23,8 @@ WORKDIR /app
 RUN mkdir -p uploads output config
 
 # Copy the built JAR from build stage
-COPY --from=build /app/target/*-jar-with-dependencies.jar app.jar
+# The JAR was prepared as app.jar in the build stage
+COPY --from=build /app/target/app.jar /app/app.jar
 
 # Expose port (will be overridden by Render's PORT env var)
 EXPOSE 8080
