@@ -116,7 +116,7 @@ public class WebServer {
 
     private Object getSystemInfo(Request req, Response res) {
         Map<String, Object> info = new HashMap<>();
-        info.put("name", "FileCompressor Pro");
+        info.put("name", "ISMA FileCompressor");
         info.put("version", "2.0");
         info.put("javaVersion", System.getProperty("java.version"));
         info.put("maxMemory", Runtime.getRuntime().maxMemory() / 1024 / 1024 + " MB");
