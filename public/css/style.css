@@ -231,6 +231,30 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-primary);
 }
 
+.logo-text {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.2;
+}
+
+.logo-line-1,
+.logo-line-2 {
+    display: inline;
+}
+
+.logo-line-2 {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.logo .version-badge {
+    display: inline-block;
+    margin-left: 4px;
+}
+
 .logo i {
     font-size: 1.75rem;
     color: var(--primary);

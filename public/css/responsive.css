@@ -51,26 +51,35 @@ img, video, iframe {
         display: flex;
         align-items: center;
         gap: 6px;
-        overflow: hidden;
+        overflow: visible;
         order: 1;
     }
 
     .logo {
-        font-size: 0.95rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: 0.85rem;
         flex-shrink: 1;
         display: flex;
         align-items: center;
         gap: 6px;
     }
 
-    .logo span {
-        display: inline-block;
-        max-width: 100px;
-        overflow: hidden;
-        text-overflow: ellipsis;
+    .logo-text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+    }
+
+    .logo-line-1 {
+        font-size: 0.9em;
+        white-space: nowrap;
+    }
+
+    .logo-line-2 {
+        font-size: 0.85em;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .logo i {
@@ -78,9 +87,9 @@ img, video, iframe {
         flex-shrink: 0;
     }
 
-    .version-badge {
-        font-size: 0.6rem;
-        padding: 2px 5px;
+    .logo .version-badge {
+        font-size: 0.55rem;
+        padding: 2px 4px;
         white-space: nowrap;
         flex-shrink: 0;
         margin-left: 2px;
@@ -524,13 +533,21 @@ img, video, iframe {
 
 /* ===== VERY SMALL SCREENS (320px - 360px) ===== */
 @media (max-width: 360px) {
-    .logo span {
-        max-width: 75px;
+    .logo {
+        font-size: 0.8rem;
     }
     
-    .version-badge {
-        font-size: 0.55rem;
-        padding: 2px 4px;
+    .logo-line-1 {
+        font-size: 0.85em;
+    }
+    
+    .logo-line-2 {
+        font-size: 0.8em;
+    }
+    
+    .logo .version-badge {
+        font-size: 0.5rem;
+        padding: 2px 3px;
     }
     
     .mobile-menu-toggle {
@@ -570,6 +587,16 @@ img, video, iframe {
         width: auto;
         padding: 8px 12px;
         border-bottom: none;
+    }
+
+    /* Keep logo horizontal on tablets */
+    .logo-text {
+        flex-direction: row;
+    }
+
+    .logo-line-1,
+    .logo-line-2 {
+        display: inline;
     }
     /* Container */
     .container {
@@ -666,6 +693,15 @@ img, video, iframe {
 
 /* ===== SMALL LAPTOPS (769px - 1024px) ===== */
 @media (min-width: 769px) and (max-width: 1024px) {
+    /* Keep logo horizontal on laptops */
+    .logo-text {
+        flex-direction: row;
+    }
+
+    .logo-line-1,
+    .logo-line-2 {
+        display: inline;
+    }
     /* Container */
     .container {
         max-width: 960px;
