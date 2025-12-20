@@ -87,6 +87,8 @@ body {
     transition: var(--transition);
     overflow-x: hidden;
     line-height: 1.6;
+    width: 100%;
+    position: relative;
 }
 
 .container {
@@ -255,6 +257,10 @@ h1, h2, h3, h4, h5, h6 {
     gap: 2rem;
 }
 
+.mobile-menu-toggle {
+    display: none;
+}
+
 .nav-link {
     display: flex;
     align-items: center;
@@ -319,11 +325,7 @@ h1, h2, h3, h4, h5, h6 {
     margin: 2rem 0;
 }
 
-@media (max-width: 768px) {
-    .quality-cards {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
+/* Responsive styles moved to responsive.css */
 
 .quality-card {
     background: var(--bg-card);

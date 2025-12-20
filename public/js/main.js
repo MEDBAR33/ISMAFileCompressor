@@ -8,12 +8,42 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeCustomSettings();
     initializeAnimatedHeader();
     initializeFeatureCards();
+    initializeMobileMenu();
     
     // Check if we're on the upload section
     if (window.location.hash === '#upload' || !window.location.hash) {
         // Already initialized by upload.js
     }
 });
+
+function initializeMobileMenu() {
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const navMenu = document.getElementById('navMenu');
+    
+    if (mobileMenuToggle && navMenu) {
+        mobileMenuToggle.addEventListener('click', function() {
+            navMenu.classList.toggle('active');
+            mobileMenuToggle.classList.toggle('active');
+        });
+        
+        // Close menu when clicking on a nav link
+        const navLinks = navMenu.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function() {
+                navMenu.classList.remove('active');
+                mobileMenuToggle.classList.remove('active');
+            });
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!navMenu.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
+                navMenu.classList.remove('active');
+                mobileMenuToggle.classList.remove('active');
+            }
+        });
+    }
+}
 
 function initializeFeatureCards() {
     const featureCards = document.querySelectorAll('.flip-feature-card');

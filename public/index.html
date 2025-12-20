@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="css/animations.css">
     <link rel="stylesheet" href="css/new_sections.css">
     <link rel="stylesheet" href="css/footer.css">
+    <link rel="stylesheet" href="css/responsive.css">
     <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 </head>
 <body>
@@ -28,7 +29,10 @@
             <div class="version-badge">v2.0</div>
         </div>
 
-        <div class="nav-menu">
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="nav-menu" id="navMenu">
             <a href="#upload" class="nav-link active">
                 <i class="fas fa-cloud-upload-alt"></i>
                 <span>Compress</span>

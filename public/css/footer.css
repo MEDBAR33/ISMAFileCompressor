@@ -81,19 +81,4 @@
     line-height: 2;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .footer-content {
-        grid-template-columns: 1fr;
-        gap: 40px;
-    }
-    
-    .footer-links-container {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-    
-    .footer-links-container a {
-        margin-bottom: 8px;
-    }
-}
+/* Responsive styles moved to responsive.css */
