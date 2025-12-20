@@ -43,5 +43,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/info 2>/dev/null || exit 1
 
 # Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# Use shell form to properly expand environment variables
+# This ensures JAVA_OPTS is expanded correctly
+ENTRYPOINT ["sh", "-c", "exec java ${JAVA_OPTS} -jar app.jar"]
 
