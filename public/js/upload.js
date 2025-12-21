@@ -287,7 +287,6 @@ function initializeButtons() {
     const clearBtn = document.getElementById('clearBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const newCompressionBtn = document.getElementById('newCompressionBtn');
-    const viewFilesBtn = document.getElementById('viewFilesBtn');
     
     if (compressBtn) {
         compressBtn.addEventListener('click', startCompression);
@@ -366,13 +365,6 @@ function initializeButtons() {
             } else {
                 alert('No compression session found. Please compress files first.');
             }
-        });
-    }
-    
-    // View Files button - opens Downloads folder location
-    if (viewFilesBtn) {
-        viewFilesBtn.addEventListener('click', function() {
-            openDownloadsFolder();
         });
     }
 }
@@ -1000,38 +992,14 @@ function showResults(status) {
             estimatedSaveLabel.textContent = 'Total Saved';
         }
         
-        // Display user's Downloads folder path instead of server path
+        // Display simple Downloads folder message for all devices
         const outputDirElement = document.getElementById('outputDirectory');
         const outputDirPath = document.getElementById('outputDirectoryPath');
         if (outputDirElement && outputDirPath) {
             outputDirElement.style.display = 'block';
-            
-            // Fetch Downloads path from server (detects OS from User-Agent)
-            fetch('/api/downloads-path')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.displayPath) {
-                        outputDirPath.textContent = data.displayPath;
-                        console.log('Downloads folder path displayed:', data.displayPath);
-                    } else if (data.path) {
-                        outputDirPath.textContent = data.path;
-                    } else {
-                        // Fallback
-                        outputDirPath.textContent = 'Downloads folder';
-                    }
-                })
-                .catch(err => {
-                    console.error('Error fetching downloads path:', err);
-                    // Fallback based on client-side detection
-                    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-                    if (navigator.platform.toLowerCase().indexOf('win') > -1) {
-                        outputDirPath.textContent = 'C:\\Users\\{YourUsername}\\Downloads';
-                    } else if (navigator.platform.toLowerCase().indexOf('mac') > -1) {
-                        outputDirPath.textContent = '~/Downloads';
-                    } else {
-                        outputDirPath.textContent = '~/Downloads';
-                    }
-                });
+            // Simple message for all devices
+            outputDirPath.textContent = 'Downloads';
+            console.log('Downloads folder path displayed: Downloads');
         }
     } else {
         // Fallback if no result
@@ -1188,81 +1156,6 @@ async function cancelCompression() {
     }
 }
 
-// Function to open Downloads folder on user's device
-function openDownloadsFolder() {
-    // Get path info from server
-    fetch('/api/downloads-path')
-        .then(res => res.json())
-        .then(data => {
-            const downloadsPath = data.displayPath || data.path || 'Downloads';
-            const instructions = data.instructions || 'Open your file manager and navigate to Downloads';
-            const runCommand = data.path || '%USERPROFILE%\\Downloads';
-            
-            if (data.os === 'windows') {
-                // Windows - try to open via file:// or show instructions
-                try {
-                    // Try using file:// URL (limited browser support)
-                    const fileUrl = 'file:///C:/Users/User/Downloads';
-                    window.open(fileUrl, '_blank');
-                    
-                    // Show instructions with copy option
-                    setTimeout(() => {
-                        const userConfirmed = confirm(
-                            'Downloads folder location:\n\n' + downloadsPath + '\n\n' +
-                            'To open this folder:\n' +
-                            '1. Press Windows key + R\n' +
-                            '2. Type: ' + runCommand + '\n' +
-                            '3. Press Enter\n\n' +
-                            'Click OK to copy the command to clipboard.'
-                        );
-                        if (userConfirmed) {
-                            // Copy command to clipboard
-                            navigator.clipboard.writeText(runCommand).then(() => {
-                                alert('Command copied! Paste it in the Run dialog (Windows+R).');
-                            }).catch(() => {
-                                prompt('Copy this command:', runCommand);
-                            });
-                        }
-                    }, 500);
-                } catch (e) {
-                    // Fallback: show instructions
-                    const userConfirmed = confirm(
-                        'Downloads folder: ' + downloadsPath + '\n\n' +
-                        'To open this folder:\n' +
-                        '1. Press Windows key + R\n' +
-                        '2. Type: ' + runCommand + '\n' +
-                        '3. Press Enter\n\n' +
-                        'Click OK to copy the command to clipboard.'
-                    );
-                    if (userConfirmed) {
-                        navigator.clipboard.writeText(runCommand).then(() => {
-                            alert('Command copied! Paste it in the Run dialog (Windows+R).');
-                        }).catch(() => {
-                            prompt('Copy this command:', runCommand);
-                        });
-                    }
-                }
-            } else if (data.os === 'mac') {
-                // macOS
-                try {
-                    window.open('file:///Users/' + (navigator.userAgentData?.platform || 'User') + '/Downloads', '_blank');
-                    setTimeout(() => {
-                        alert('Downloads folder: ' + downloadsPath + '\n\n' + instructions);
-                    }, 500);
-                } catch (e) {
-                    alert('Downloads folder: ' + downloadsPath + '\n\n' + instructions);
-                }
-            } else {
-                // iOS, Android, Linux
-                alert('Downloads folder: ' + downloadsPath + '\n\n' + instructions);
-            }
-        })
-        .catch(err => {
-            console.error('Error getting downloads path:', err);
-            // Fallback
-            alert('Downloads folder location:\n\nCheck your browser\'s default Downloads folder.\n\nOn Windows: C:\\Users\\YourUsername\\Downloads\n\nPress Windows+R and type: %USERPROFILE%\\Downloads');
-        });
-}
 
 // Make functions available globally
 window.removeFile = removeFile;
