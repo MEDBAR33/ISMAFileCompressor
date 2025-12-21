@@ -3,6 +3,7 @@ package com.ismafilecompressor.config;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 public class AppConfig {
@@ -30,6 +31,151 @@ public class AppConfig {
         }
     }
 
+    /**
+     * Gets the OS-specific output directory for compressed files.
+     * Returns a user-friendly path that exists and is accessible.
+     */
+    private static String getDefaultOutputFolder() {
+        String osName = System.getProperty("os.name", "").toLowerCase();
+        String userHome = System.getProperty("user.home", "");
+        String userName = System.getProperty("user.name", "");
+        
+        // Handle Windows
+        if (osName.contains("win")) {
+            // Windows: C:\Users\{username}\CompressedFiles
+            if (userHome.isEmpty()) {
+                // Fallback if user.home is not set
+                return "C:\\Users\\" + (userName.isEmpty() ? "User" : userName) + "\\CompressedFiles";
+            }
+            // Use user.home and ensure backslashes
+            return Paths.get(userHome, "CompressedFiles").toString();
+        }
+        
+        // Handle macOS
+        if (osName.contains("mac") || osName.contains("darwin")) {
+            // macOS: /Users/{username}/CompressedFiles
+            if (userHome.isEmpty()) {
+                return "/Users/" + (userName.isEmpty() ? "user" : userName) + "/CompressedFiles";
+            }
+            return Paths.get(userHome, "CompressedFiles").toString();
+        }
+        
+        // Handle Linux/Unix
+        if (osName.contains("nix") || osName.contains("nux") || osName.contains("aix")) {
+            // Linux: /home/{username}/CompressedFiles
+            if (userHome.isEmpty()) {
+                return "/home/" + (userName.isEmpty() ? "user" : userName) + "/CompressedFiles";
+            }
+            return Paths.get(userHome, "CompressedFiles").toString();
+        }
+        
+        // Handle mobile devices (Android/iOS) - Note: This is server-side, so paths are on server
+        // For mobile browsers accessing the web app, files are saved on the server
+        // But we want user-friendly paths for display
+        
+        // Check if user.home points to /root (common on Linux servers or Android)
+        if (userHome.equals("/root") || userHome.equals("\\root")) {
+            // Try to find a better location
+            // For Linux servers (like Railway), use /tmp or app directory
+            String[] serverPaths = {
+                System.getProperty("user.dir", ".") + "/output",
+                System.getProperty("user.dir", ".") + "/CompressedFiles",
+                "/tmp/CompressedFiles",
+                System.getProperty("java.io.tmpdir", "/tmp") + "/CompressedFiles"
+            };
+            
+            for (String path : serverPaths) {
+                try {
+                    File dir = new File(path);
+                    if (dir.exists() || dir.getParentFile().exists()) {
+                        // Create directory if it doesn't exist
+                        dir.mkdirs();
+                        if (dir.exists() && dir.isDirectory()) {
+                            return Paths.get(path).toString();
+                        }
+                    }
+                } catch (Exception e) {
+                    // Continue to next path
+                }
+            }
+        }
+        
+        // For Android/iOS devices running the server (unlikely but possible)
+        if (osName.contains("android")) {
+            // Try common Android paths
+            String[] androidPaths = {
+                "/storage/emulated/0/Download/CompressedFiles",
+                "/storage/emulated/0/Documents/CompressedFiles",
+                "/sdcard/Download/CompressedFiles",
+                userHome + "/Download/CompressedFiles",
+                userHome + "/Documents/CompressedFiles"
+            };
+            
+            for (String path : androidPaths) {
+                try {
+                    File dir = new File(path);
+                    File parent = dir.getParentFile();
+                    if (parent != null && (parent.exists() || parent.mkdirs())) {
+                        dir.mkdirs();
+                        if (dir.exists() && dir.isDirectory()) {
+                            return Paths.get(path).toString();
+                        }
+                    }
+                } catch (Exception e) {
+                    // Continue to next path
+                }
+            }
+        }
+        
+        // iOS or other Unix-like systems
+        // Try common locations
+        String[] commonPaths = {
+            userHome + "/Documents/CompressedFiles",
+            userHome + "/Downloads/CompressedFiles",
+            userHome + "/CompressedFiles"
+        };
+        
+        for (String path : commonPaths) {
+            if (!path.isEmpty()) {
+                try {
+                    File dir = new File(path);
+                    File parent = dir.getParentFile();
+                    if (parent != null && (parent.exists() || parent.mkdirs())) {
+                        dir.mkdirs();
+                        if (dir.exists() && dir.isDirectory()) {
+                            return Paths.get(path).toString();
+                        }
+                    }
+                } catch (Exception e) {
+                    // Continue to next path
+                }
+            }
+        }
+        
+        // Final fallback: use user.home if available
+        if (!userHome.isEmpty()) {
+            try {
+                String path = Paths.get(userHome, "CompressedFiles").toString();
+                File dir = new File(path);
+                dir.mkdirs();
+                return path;
+            } catch (Exception e) {
+                // Continue to last resort
+            }
+        }
+        
+        // Last resort: current directory or temp directory
+        try {
+            String currentDir = System.getProperty("user.dir", ".");
+            String path = Paths.get(currentDir, "CompressedFiles").toString();
+            File dir = new File(path);
+            dir.mkdirs();
+            return path;
+        } catch (Exception e) {
+            return Paths.get(System.getProperty("java.io.tmpdir", "/tmp"), "CompressedFiles").toString();
+        }
+    }
+
     private static void setDefaults() {
         // Web Server
         props.setProperty("web.port", "8080");
@@ -41,8 +187,8 @@ public class AppConfig {
         props.setProperty("compression.defaultLevel", "balanced");
         props.setProperty("compression.threads", String.valueOf(Runtime.getRuntime().availableProcessors()));
 
-        // Output
-        props.setProperty("output.defaultFolder", System.getProperty("user.home") + "/CompressedFiles");
+        // Output - Use OS-aware path
+        props.setProperty("output.defaultFolder", getDefaultOutputFolder());
         props.setProperty("output.keepOriginals", "true");
 
         // UI
@@ -88,8 +234,42 @@ public class AppConfig {
     }
 
     public static String getOutputFolder() {
-        return props.getProperty("output.defaultFolder",
-                System.getProperty("user.home") + "/CompressedFiles");
+        String configuredFolder = props.getProperty("output.defaultFolder");
+        String finalPath;
+        
+        if (configuredFolder != null && !configuredFolder.trim().isEmpty()) {
+            // Validate the configured folder - if it contains hardcoded username, regenerate
+            String osName = System.getProperty("os.name", "").toLowerCase();
+            String currentUserHome = System.getProperty("user.home", "");
+            
+            // Check if the path contains a hardcoded username (like "moham")
+            // If user.home changed or path seems wrong, regenerate it
+            if (configuredFolder.contains("moham") || 
+                (osName.contains("win") && !configuredFolder.contains(currentUserHome) && !currentUserHome.isEmpty())) {
+                // Regenerate with current user
+                finalPath = getDefaultOutputFolder();
+                props.setProperty("output.defaultFolder", finalPath);
+                saveConfig();
+            } else {
+                finalPath = configuredFolder;
+            }
+        } else {
+            // If not configured, get the default OS-aware path
+            finalPath = getDefaultOutputFolder();
+        }
+        
+        // Ensure the directory exists
+        try {
+            File outputDir = new File(finalPath);
+            if (!outputDir.exists()) {
+                outputDir.mkdirs();
+            }
+            // Return the canonical path for better display
+            return outputDir.getCanonicalPath();
+        } catch (Exception e) {
+            // If we can't create or get canonical path, return the original
+            return finalPath;
+        }
     }
 
     public static boolean keepOriginals() {
