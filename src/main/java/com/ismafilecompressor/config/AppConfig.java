@@ -21,6 +21,17 @@ public class AppConfig {
                 try (FileInputStream fis = new FileInputStream(configFile)) {
                     props.load(fis);
                 }
+                // Validate and fix output folder if it's invalid
+                String outputFolder = props.getProperty("output.defaultFolder", "");
+                if (!outputFolder.isEmpty()) {
+                    // Check if path contains /root or \root (invalid for cloud deployments)
+                    if (outputFolder.contains("/root") || outputFolder.contains("\\root") || 
+                        outputFolder.contains("moham")) {
+                        // Regenerate with proper path
+                        props.setProperty("output.defaultFolder", getDefaultOutputFolder());
+                        saveConfig();
+                    }
+                }
             } else {
                 setDefaults();
                 saveConfig();
@@ -73,22 +84,27 @@ public class AppConfig {
         // For mobile browsers accessing the web app, files are saved on the server
         // But we want user-friendly paths for display
         
-        // Check if user.home points to /root (common on Linux servers or Android)
+        // Check if user.home points to /root (common on Linux servers like Railway)
         if (userHome.equals("/root") || userHome.equals("\\root")) {
-            // Try to find a better location
-            // For Linux servers (like Railway), use /tmp or app directory
+            // For cloud servers (Railway, etc.), use the app directory instead of /root
+            // This is more reliable and accessible
+            String appDir = System.getProperty("user.dir", ".");
+            
+            // Try app directory first (most reliable for Railway)
             String[] serverPaths = {
-                System.getProperty("user.dir", ".") + "/output",
-                System.getProperty("user.dir", ".") + "/CompressedFiles",
-                "/tmp/CompressedFiles",
+                appDir + "/output/CompressedFiles",
+                appDir + "/CompressedFiles",
+                "/app/output/CompressedFiles",  // Railway Docker default
+                "/app/CompressedFiles",         // Railway Docker default
                 System.getProperty("java.io.tmpdir", "/tmp") + "/CompressedFiles"
             };
             
             for (String path : serverPaths) {
                 try {
                     File dir = new File(path);
-                    if (dir.exists() || dir.getParentFile().exists()) {
-                        // Create directory if it doesn't exist
+                    File parent = dir.getParentFile();
+                    // Try to create parent directory if it exists or is app directory
+                    if (parent != null && (parent.exists() || parent.getAbsolutePath().equals(appDir) || parent.getAbsolutePath().equals("/app"))) {
                         dir.mkdirs();
                         if (dir.exists() && dir.isDirectory()) {
                             return Paths.get(path).toString();
@@ -97,6 +113,16 @@ public class AppConfig {
                 } catch (Exception e) {
                     // Continue to next path
                 }
+            }
+            
+            // Last resort: use app directory even if we can't verify
+            try {
+                String fallbackPath = Paths.get(appDir, "CompressedFiles").toString();
+                File fallbackDir = new File(fallbackPath);
+                fallbackDir.mkdirs();
+                return fallbackPath;
+            } catch (Exception e) {
+                // Continue to next fallback
             }
         }
         
@@ -236,16 +262,34 @@ public class AppConfig {
     public static String getOutputFolder() {
         String configuredFolder = props.getProperty("output.defaultFolder");
         String finalPath;
+        String currentUserHome = System.getProperty("user.home", "");
+        String osName = System.getProperty("os.name", "").toLowerCase();
         
         if (configuredFolder != null && !configuredFolder.trim().isEmpty()) {
-            // Validate the configured folder - if it contains hardcoded username, regenerate
-            String osName = System.getProperty("os.name", "").toLowerCase();
-            String currentUserHome = System.getProperty("user.home", "");
+            // Validate the configured folder - check for invalid paths
+            boolean needsRegeneration = false;
             
-            // Check if the path contains a hardcoded username (like "moham")
-            // If user.home changed or path seems wrong, regenerate it
-            if (configuredFolder.contains("moham") || 
-                (osName.contains("win") && !configuredFolder.contains(currentUserHome) && !currentUserHome.isEmpty())) {
+            // Check for hardcoded username (like "moham")
+            if (configuredFolder.contains("moham")) {
+                needsRegeneration = true;
+            }
+            
+            // Check for /root paths (common on Railway/Linux servers)
+            if (configuredFolder.contains("\\root") || configuredFolder.contains("/root")) {
+                needsRegeneration = true;
+            }
+            
+            // Check if Windows path doesn't match current user
+            if (osName.contains("win") && !configuredFolder.contains(currentUserHome) && !currentUserHome.isEmpty()) {
+                needsRegeneration = true;
+            }
+            
+            // Check if path is /root but we're on a server (should use app directory)
+            if (configuredFolder.startsWith("/root") || configuredFolder.startsWith("\\root")) {
+                needsRegeneration = true;
+            }
+            
+            if (needsRegeneration) {
                 // Regenerate with current user
                 finalPath = getDefaultOutputFolder();
                 props.setProperty("output.defaultFolder", finalPath);
