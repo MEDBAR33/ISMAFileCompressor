@@ -962,34 +962,36 @@ function showResults(status) {
             estimatedSaveLabel.textContent = 'Total Saved';
         }
         
-        // Display output directory if available
-        if (result.outputDirectory) {
-            const outputDirElement = document.getElementById('outputDirectory');
-            const outputDirPath = document.getElementById('outputDirectoryPath');
-            if (outputDirElement) {
-                outputDirElement.style.display = 'block';
+        // Display user's Downloads folder path instead of server path
+        const outputDirElement = document.getElementById('outputDirectory');
+        const outputDirPath = document.getElementById('outputDirectoryPath');
+        if (outputDirElement && outputDirPath) {
+            outputDirElement.style.display = 'block';
+            
+            // Get user's Downloads folder path based on OS
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            let downloadsPath = '';
+            
+            if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+                // iOS
+                downloadsPath = '/Downloads';
+            } else if (/android/i.test(userAgent)) {
+                // Android
+                downloadsPath = '/storage/emulated/0/Download';
+            } else if (navigator.platform.toLowerCase().indexOf('win') > -1) {
+                // Windows
+                const userName = 'User'; // We can't get actual username from browser, use generic
+                downloadsPath = `C:\\Users\\${userName}\\Downloads`;
+            } else if (navigator.platform.toLowerCase().indexOf('mac') > -1) {
+                // macOS
+                downloadsPath = '~/Downloads';
+            } else {
+                // Linux/Unix
+                downloadsPath = '~/Downloads';
             }
-            if (outputDirPath) {
-                outputDirPath.textContent = result.outputDirectory;
-                console.log('Output directory displayed:', result.outputDirectory);
-            }
-        } else {
-            // Fallback: try to get from settings API or use default
-            fetch('/api/settings')
-                .then(res => res.json())
-                .then(settings => {
-                    if (settings.outputFolder) {
-                        const outputDirElement = document.getElementById('outputDirectory');
-                        const outputDirPath = document.getElementById('outputDirectoryPath');
-                        if (outputDirElement) {
-                            outputDirElement.style.display = 'block';
-                        }
-                        if (outputDirPath) {
-                            outputDirPath.textContent = settings.outputFolder;
-                        }
-                    }
-                })
-                .catch(err => console.error('Failed to get output folder:', err));
+            
+            outputDirPath.textContent = downloadsPath;
+            console.log('Downloads folder path displayed:', downloadsPath);
         }
     } else {
         // Fallback if no result

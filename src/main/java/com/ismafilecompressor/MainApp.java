@@ -1,6 +1,7 @@
 package com.ismafilecompressor;
 
 import com.ismafilecompressor.web.WebServer;
+import com.ismafilecompressor.util.FileCleanupService;
 
 public class MainApp {
     private static WebServer webServer;
@@ -24,16 +25,21 @@ public class MainApp {
         }
         
         try {
+            // Start File Cleanup Service (deletes old files after 1 hour)
+            FileCleanupService.start();
+            
             // Start Web Server
             webServer = new WebServer(port);
             webServer.start();
             
             System.out.println("✅ Web server started successfully!");
             System.out.println("🌐 Web Interface available on port: " + port);
+            System.out.println("🧹 File cleanup service started - files older than 1 hour will be automatically deleted");
             
             // Add shutdown hook for graceful shutdown
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 System.out.println("\n🛑 Shutting down server...");
+                FileCleanupService.stop();
                 if (webServer != null) {
                     webServer.stop();
                 }
@@ -51,6 +57,7 @@ public class MainApp {
             e.printStackTrace();
             System.exit(1);
         } finally {
+            FileCleanupService.stop();
             if (webServer != null) {
                 webServer.stop();
             }
