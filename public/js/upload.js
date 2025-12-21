@@ -992,14 +992,49 @@ function showResults(status) {
             estimatedSaveLabel.textContent = 'Total Saved';
         }
         
-        // Display simple Downloads folder message for all devices
+        // Display Downloads folder message with OS-specific path
         const outputDirElement = document.getElementById('outputDirectory');
         const outputDirPath = document.getElementById('outputDirectoryPath');
         if (outputDirElement && outputDirPath) {
             outputDirElement.style.display = 'block';
-            // Simple message for all devices
-            outputDirPath.textContent = 'Downloads';
-            console.log('Downloads folder path displayed: Downloads');
+            // Detect OS and show appropriate path
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            const platform = navigator.platform || '';
+            let downloadsPath = '~/Downloads'; // Default Unix-style
+            
+            if (platform.toLowerCase().indexOf('win') > -1 || userAgent.toLowerCase().indexOf('windows') > -1) {
+                downloadsPath = '~\\Downloads'; // Windows-style
+            } else {
+                downloadsPath = '~/Downloads'; // Unix-style (Mac, Linux, etc.)
+            }
+            
+            outputDirPath.textContent = downloadsPath;
+            console.log('Downloads folder path displayed:', downloadsPath);
+        }
+        
+        // Auto-download files when compression completes
+        if (status.result && status.result.downloadFiles && status.result.downloadFiles.length > 0) {
+            console.log('Auto-downloading files on completion...', status.result.downloadFiles);
+            // Small delay to ensure UI is updated first
+            setTimeout(() => {
+                autoDownloadFiles(status.result.downloadFiles, currentSessionId);
+            }, 1000);
+        } else if (status.result && currentSessionId) {
+            // Fallback: fetch results if downloadFiles not in status
+            console.log('downloadFiles not in status.result, fetching results...');
+            fetch(`/api/progress/${currentSessionId}`)
+                .then(res => res.json())
+                .then(progressStatus => {
+                    if (progressStatus.result && progressStatus.result.downloadFiles && progressStatus.result.downloadFiles.length > 0) {
+                        console.log('Auto-downloading files from fetched results...', progressStatus.result.downloadFiles);
+                        setTimeout(() => {
+                            autoDownloadFiles(progressStatus.result.downloadFiles, currentSessionId);
+                        }, 1000);
+                    }
+                })
+                .catch(err => {
+                    console.error('Error fetching results for auto-download:', err);
+                });
         }
     } else {
         // Fallback if no result
