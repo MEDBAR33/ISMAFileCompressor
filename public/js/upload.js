@@ -862,6 +862,13 @@ async function pollCompressionProgress() {
                         updateEstimatedSaveToTotalSaved(status);
                         setTimeout(() => {
                             showResults(status);
+                            // Automatically download all compressed files to user's device
+                            if (status.result && status.result.downloadFiles) {
+                                const sessionId = status.sessionId || currentSessionId;
+                                if (sessionId) {
+                                    autoDownloadFiles(status.result.downloadFiles, sessionId);
+                                }
+                            }
                         }, 500);
                     }
                 }
@@ -990,6 +997,73 @@ function showResults(status) {
         if (compressionRatioEl) compressionRatioEl.textContent = '0%';
         if (totalTimeEl) totalTimeEl.textContent = '0s';
     }
+}
+
+// Automatically download compressed files to user's device (Downloads folder)
+function autoDownloadFiles(downloadFiles, sessionId) {
+    if (!downloadFiles || downloadFiles.length === 0) {
+        console.log('No files to download');
+        return;
+    }
+    
+    console.log('Auto-downloading', downloadFiles.length, 'compressed file(s) to Downloads folder...');
+    
+    // Download each file with a small delay to avoid browser blocking multiple downloads
+    downloadFiles.forEach((file, index) => {
+        setTimeout(() => {
+            try {
+                const downloadUrl = file.downloadUrl || `/api/download/${encodeURIComponent(file.compressedName)}?sessionId=${sessionId}`;
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = file.originalName || file.compressedName;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                console.log('Downloaded:', file.originalName || file.compressedName);
+            } catch (error) {
+                console.error('Error downloading file:', file.originalName, error);
+            }
+        }, index * 300); // 300ms delay between each download
+    });
+    
+    // Show notification
+    if (downloadFiles.length > 0) {
+        showNotification(`Downloading ${downloadFiles.length} file(s) to your Downloads folder...`, 'info');
+    }
+}
+
+// Helper function to show notifications
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'info' ? '#2196F3' : type === 'success' ? '#4CAF50' : '#f44336'};
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 10000;
+        font-size: 14px;
+        max-width: 400px;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
 }
 
 async function cancelCompression() {

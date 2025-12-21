@@ -230,6 +230,26 @@ public class CompressionSession {
             summary.put("outputDirectory", com.ismafilecompressor.config.AppConfig.getOutputFolder());
         }
         
+        // Add download URLs for each compressed file
+        List<Map<String, Object>> downloadFiles = new ArrayList<>();
+        for (FileInfo fileInfo : result.getFiles()) {
+            if (fileInfo.getCompressed() != null && 
+                java.nio.file.Files.exists(fileInfo.getCompressed())) {
+                Map<String, Object> fileData = new HashMap<>();
+                fileData.put("originalName", fileInfo.getFileName());
+                fileData.put("compressedName", fileInfo.getCompressed().getFileName().toString());
+                // URL encode the filename for safe transmission
+                String encodedName = java.net.URLEncoder.encode(
+                    fileInfo.getCompressed().getFileName().toString(), 
+                    java.nio.charset.StandardCharsets.UTF_8);
+                fileData.put("downloadUrl", "/api/download/" + encodedName + "?sessionId=" + sessionId);
+                fileData.put("size", fileInfo.getCompressedSize());
+                fileData.put("formattedSize", fileInfo.getFormattedCompressedSize());
+                downloadFiles.add(fileData);
+            }
+        }
+        summary.put("downloadFiles", downloadFiles);
+        
         return summary;
     }
 

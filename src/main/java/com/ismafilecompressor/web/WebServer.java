@@ -517,24 +517,152 @@ public class WebServer {
     }
 
     private Object downloadFile(Request req, Response res) {
-        String fileId = req.params(":fileId");
-        // Implementation would look up file and serve it
-        res.status(501);
-        return "{\"error\":\"Not implemented\"}";
+        try {
+            String sessionId = req.queryParams("sessionId");
+            String fileName = req.params(":fileId");
+            
+            if (sessionId == null || sessionId.isEmpty()) {
+                res.status(400);
+                return "{\"error\":\"Session ID required\"}";
+            }
+            
+            CompressionSession session = sessions.get(sessionId);
+            if (session == null) {
+                res.status(404);
+                return "{\"error\":\"Session not found\"}";
+            }
+            
+            CompressionResult result = session.getResult();
+            if (result == null) {
+                res.status(400);
+                return "{\"error\":\"Results not available\"}";
+            }
+            
+            // Decode the filename
+            String decodedFileName = fileName;
+            try {
+                decodedFileName = java.net.URLDecoder.decode(fileName, "UTF-8");
+            } catch (Exception e) {
+                // If decoding fails, use original
+            }
+            
+            // Find the file by name
+            java.nio.file.Path filePath = null;
+            String originalFileName = null;
+            for (FileInfo fileInfo : result.getFiles()) {
+                if (fileInfo.getCompressed() != null) {
+                    String compressedName = fileInfo.getCompressed().getFileName().toString();
+                    // Match by filename (try both encoded and decoded)
+                    if (compressedName.equals(fileName) || 
+                        compressedName.equals(decodedFileName) ||
+                        fileName.equals(compressedName) ||
+                        decodedFileName.equals(compressedName)) {
+                        filePath = fileInfo.getCompressed();
+                        originalFileName = fileInfo.getFileName();
+                        break;
+                    }
+                }
+            }
+            
+            if (filePath == null || !java.nio.file.Files.exists(filePath)) {
+                res.status(404);
+                return "{\"error\":\"File not found\"}";
+            }
+            
+            // Set headers for file download
+            res.header("Content-Disposition", "attachment; filename=\"" + 
+                (originalFileName != null ? originalFileName : filePath.getFileName().toString()) + "\"");
+            res.type("application/octet-stream");
+            
+            // Stream the file
+            java.io.File file = filePath.toFile();
+            res.header("Content-Length", String.valueOf(file.length()));
+            
+            try (java.io.FileInputStream fis = new java.io.FileInputStream(file);
+                 java.io.OutputStream os = res.raw().getOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    os.write(buffer, 0, bytesRead);
+                }
+            }
+            
+            return "";
+        } catch (Exception e) {
+            LoggerUtil.logError("Error downloading file", e);
+            res.status(500);
+            return "{\"error\":\"Failed to download file: " + e.getMessage() + "\"}";
+        }
     }
 
     private Object downloadAll(Request req, Response res) {
-        String sessionId = req.params(":sessionId");
-        CompressionSession session = sessions.get(sessionId);
+        try {
+            String sessionId = req.params(":sessionId");
+            CompressionSession session = sessions.get(sessionId);
 
-        if (session == null) {
-            res.status(404);
-            return "{\"error\":\"Session not found\"}";
+            if (session == null) {
+                res.status(404);
+                return "{\"error\":\"Session not found\"}";
+            }
+            
+            CompressionResult result = session.getResult();
+            if (result == null || result.getFiles().isEmpty()) {
+                res.status(400);
+                return "{\"error\":\"No files available for download\"}";
+            }
+            
+            // Create a ZIP file with all compressed files
+            java.io.File zipFile = java.io.File.createTempFile("compressed_files_", ".zip");
+            zipFile.deleteOnExit();
+            
+            try (java.util.zip.ZipOutputStream zos = new java.util.zip.ZipOutputStream(
+                    new java.io.FileOutputStream(zipFile))) {
+                
+                for (FileInfo fileInfo : result.getFiles()) {
+                    if (fileInfo.getCompressed() != null && 
+                        java.nio.file.Files.exists(fileInfo.getCompressed())) {
+                        java.nio.file.Path filePath = fileInfo.getCompressed();
+                        java.io.File file = filePath.toFile();
+                        
+                        java.util.zip.ZipEntry entry = new java.util.zip.ZipEntry(fileInfo.getFileName());
+                        zos.putNextEntry(entry);
+                        
+                        try (java.io.FileInputStream fis = new java.io.FileInputStream(file)) {
+                            byte[] buffer = new byte[8192];
+                            int bytesRead;
+                            while ((bytesRead = fis.read(buffer)) != -1) {
+                                zos.write(buffer, 0, bytesRead);
+                            }
+                        }
+                        zos.closeEntry();
+                    }
+                }
+            }
+            
+            // Set headers for ZIP download
+            res.header("Content-Disposition", "attachment; filename=\"compressed_files.zip\"");
+            res.type("application/zip");
+            res.header("Content-Length", String.valueOf(zipFile.length()));
+            
+            // Stream the ZIP file
+            try (java.io.FileInputStream fis = new java.io.FileInputStream(zipFile);
+                 java.io.OutputStream os = res.raw().getOutputStream()) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    os.write(buffer, 0, bytesRead);
+                }
+            }
+            
+            // Clean up temp file
+            zipFile.delete();
+            
+            return "";
+        } catch (Exception e) {
+            LoggerUtil.logError("Error creating ZIP download", e);
+            res.status(500);
+            return "{\"error\":\"Failed to create ZIP: " + e.getMessage() + "\"}";
         }
-
-        // Implementation would create ZIP and serve it
-        res.status(501);
-        return "{\"error\":\"Not implemented\"}";
     }
 
     private Object getSettings(Request req, Response res) {
