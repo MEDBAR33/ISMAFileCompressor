@@ -546,17 +546,35 @@ public class WebServer {
                 // If decoding fails, use original
             }
             
-            // Find the file by name
+            // Find the file by name - try multiple matching strategies
             java.nio.file.Path filePath = null;
             String originalFileName = null;
             for (FileInfo fileInfo : result.getFiles()) {
-                if (fileInfo.getCompressed() != null) {
+                if (fileInfo.getCompressed() != null && 
+                    java.nio.file.Files.exists(fileInfo.getCompressed())) {
                     String compressedName = fileInfo.getCompressed().getFileName().toString();
-                    // Match by filename (try both encoded and decoded)
-                    if (compressedName.equals(fileName) || 
-                        compressedName.equals(decodedFileName) ||
-                        fileName.equals(compressedName) ||
-                        decodedFileName.equals(compressedName)) {
+                    
+                    // Try multiple matching strategies
+                    boolean matches = false;
+                    // Direct match
+                    if (compressedName.equals(fileName) || compressedName.equals(decodedFileName)) {
+                        matches = true;
+                    }
+                    // URL encoded match
+                    try {
+                        String encodedCompressed = java.net.URLEncoder.encode(compressedName, "UTF-8");
+                        if (encodedCompressed.equals(fileName) || fileName.equals(encodedCompressed)) {
+                            matches = true;
+                        }
+                    } catch (Exception e) {
+                        // Ignore encoding errors
+                    }
+                    // Partial match (filename only, ignore path)
+                    if (compressedName.endsWith(fileName) || fileName.endsWith(compressedName)) {
+                        matches = true;
+                    }
+                    
+                    if (matches) {
                         filePath = fileInfo.getCompressed();
                         originalFileName = fileInfo.getFileName();
                         break;

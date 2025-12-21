@@ -316,28 +316,54 @@ function initializeButtons() {
         });
     }
     
-    // View Files button - opens file explorer with highlighted files
+    // View Files button - triggers download of all compressed files
     if (viewFilesBtn) {
         viewFilesBtn.addEventListener('click', function() {
-            const outputDirPath = document.getElementById('outputDirectoryPath');
-            if (outputDirPath && outputDirPath.textContent) {
-                const outputPath = outputDirPath.textContent.trim();
-                openFileExplorer(outputPath);
-            } else {
-                // Fallback: get from result or settings
-                fetch('/api/settings')
+            // Get the current session result and download all files
+            if (currentSessionId) {
+                fetch(`/api/progress/${currentSessionId}`)
                     .then(res => res.json())
-                    .then(settings => {
-                        if (settings.outputFolder) {
-                            openFileExplorer(settings.outputFolder);
+                    .then(status => {
+                        if (status.result && status.result.downloadFiles) {
+                            autoDownloadFiles(status.result.downloadFiles, currentSessionId);
                         } else {
-                            alert('Output directory not found');
+                            // Try to get results directly
+                            fetch(`/api/results/${currentSessionId}`)
+                                .then(res => res.json())
+                                .then(result => {
+                                    if (result && result.files) {
+                                        // Build download URLs from result
+                                        const downloadFiles = [];
+                                        result.files.forEach(fileInfo => {
+                                            if (fileInfo.compressed) {
+                                                downloadFiles.push({
+                                                    originalName: fileInfo.name || fileInfo.fileName,
+                                                    compressedName: fileInfo.compressed,
+                                                    downloadUrl: `/api/download/${encodeURIComponent(fileInfo.compressed)}?sessionId=${currentSessionId}`
+                                                });
+                                            }
+                                        });
+                                        if (downloadFiles.length > 0) {
+                                            autoDownloadFiles(downloadFiles, currentSessionId);
+                                        } else {
+                                            alert('No files available for download');
+                                        }
+                                    } else {
+                                        alert('Files are downloading to your Downloads folder. Check your browser downloads.');
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error('Error getting results:', err);
+                                    alert('Files are downloading to your Downloads folder. Check your browser downloads.');
+                                });
                         }
                     })
                     .catch(err => {
-                        console.error('Failed to get output folder:', err);
-                        alert('Could not open file explorer. Output directory not available.');
+                        console.error('Error getting progress:', err);
+                        alert('Files are downloading to your Downloads folder. Check your browser downloads.');
                     });
+            } else {
+                alert('No compression session found. Please compress files first.');
             }
         });
     }
@@ -860,15 +886,19 @@ async function pollCompressionProgress() {
                         }
                         // Update estimated save immediately
                         updateEstimatedSaveToTotalSaved(status);
+                        
+                        // Automatically download all compressed files to user's device IMMEDIATELY
+                        if (status.result && status.result.downloadFiles && status.result.downloadFiles.length > 0) {
+                            const sessionId = status.sessionId || currentSessionId;
+                            if (sessionId) {
+                                console.log('Auto-downloading files immediately...', status.result.downloadFiles);
+                                // Start downloads immediately, don't wait
+                                autoDownloadFiles(status.result.downloadFiles, sessionId);
+                            }
+                        }
+                        
                         setTimeout(() => {
                             showResults(status);
-                            // Automatically download all compressed files to user's device
-                            if (status.result && status.result.downloadFiles) {
-                                const sessionId = status.sessionId || currentSessionId;
-                                if (sessionId) {
-                                    autoDownloadFiles(status.result.downloadFiles, sessionId);
-                                }
-                            }
                         }, 500);
                     }
                 }
@@ -1005,34 +1035,89 @@ function showResults(status) {
 function autoDownloadFiles(downloadFiles, sessionId) {
     if (!downloadFiles || downloadFiles.length === 0) {
         console.log('No files to download');
+        showNotification('No files available for download', 'error');
         return;
     }
     
-    console.log('Auto-downloading', downloadFiles.length, 'compressed file(s) to Downloads folder...');
+    console.log('Auto-downloading', downloadFiles.length, 'compressed file(s) to Downloads folder...', downloadFiles);
+    showNotification(`Downloading ${downloadFiles.length} file(s) to your Downloads folder...`, 'info');
     
     // Download each file with a small delay to avoid browser blocking multiple downloads
+    let downloadCount = 0;
+    const totalFiles = downloadFiles.length;
+    
     downloadFiles.forEach((file, index) => {
         setTimeout(() => {
             try {
-                const downloadUrl = file.downloadUrl || `/api/download/${encodeURIComponent(file.compressedName)}?sessionId=${sessionId}`;
+                // Build the download URL - use the provided downloadUrl or construct it
+                let downloadUrl = file.downloadUrl;
+                if (!downloadUrl) {
+                    const fileName = file.compressedName || file.name || file.fileName;
+                    if (fileName) {
+                        downloadUrl = `/api/download/${encodeURIComponent(fileName)}?sessionId=${sessionId}`;
+                    } else {
+                        console.error('Cannot build download URL - no filename available', file);
+                        return;
+                    }
+                }
+                
+                // Ensure URL is absolute if needed
+                if (!downloadUrl.startsWith('http') && !downloadUrl.startsWith('/')) {
+                    downloadUrl = '/api/' + downloadUrl;
+                }
+                
+                console.log('Downloading file:', file.originalName || file.name, 'from URL:', downloadUrl);
+                
+                // Create download link
                 const link = document.createElement('a');
                 link.href = downloadUrl;
-                link.download = file.originalName || file.compressedName;
+                link.download = file.originalName || file.name || file.compressedName || 'compressed_file';
                 link.style.display = 'none';
                 document.body.appendChild(link);
+                
+                // Trigger download
                 link.click();
-                document.body.removeChild(link);
-                console.log('Downloaded:', file.originalName || file.compressedName);
+                
+                // Clean up after a delay
+                setTimeout(() => {
+                    if (link.parentNode) {
+                        document.body.removeChild(link);
+                    }
+                }, 1000);
+                
+                downloadCount++;
+                console.log('Download triggered for:', file.originalName || file.name || file.compressedName);
+                
+                // Show success notification when all downloads complete
+                if (downloadCount === totalFiles) {
+                    setTimeout(() => {
+                        showNotification(`Successfully downloaded ${downloadCount} file(s) to Downloads folder!`, 'success');
+                    }, 1000);
+                }
             } catch (error) {
-                console.error('Error downloading file:', file.originalName, error);
+                console.error('Error downloading file:', file.originalName || file.name, error);
+                // Try alternative method - open URL directly in new window
+                try {
+                    const fileName = file.compressedName || file.name || file.fileName;
+                    if (fileName) {
+                        const downloadUrl = `/api/download/${encodeURIComponent(fileName)}?sessionId=${sessionId}`;
+                        console.log('Trying alternative download method:', downloadUrl);
+                        window.open(downloadUrl, '_blank');
+                    }
+                } catch (e) {
+                    console.error('Alternative download method also failed:', e);
+                }
+                // Try alternative method - open URL directly
+                try {
+                    const fileName = file.compressedName || file.name;
+                    const downloadUrl = `/api/download/${encodeURIComponent(fileName)}?sessionId=${sessionId}`;
+                    window.open(downloadUrl, '_blank');
+                } catch (e) {
+                    console.error('Alternative download method also failed:', e);
+                }
             }
-        }, index * 300); // 300ms delay between each download
+        }, index * 500); // 500ms delay between each download to avoid browser blocking
     });
-    
-    // Show notification
-    if (downloadFiles.length > 0) {
-        showNotification(`Downloading ${downloadFiles.length} file(s) to your Downloads folder...`, 'info');
-    }
 }
 
 // Helper function to show notifications
