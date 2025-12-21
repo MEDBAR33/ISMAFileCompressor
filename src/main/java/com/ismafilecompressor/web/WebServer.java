@@ -71,6 +71,9 @@ public class WebServer {
             // Settings
             get("/settings", this::getSettings);
             post("/settings", this::updateSettings);
+            
+            // Get Downloads folder path for client
+            get("/downloads-path", (req, res) -> getDownloadsPath(req, res));
 
             // Formats
             get("/formats", this::getSupportedFormats);
@@ -715,6 +718,49 @@ public class WebServer {
     private Object getSupportedFormats(Request req, Response res) {
         res.type("application/json");
         return gson.toJson(compressionService.getSupportedFormats());
+    }
+    
+    private Object getDownloadsPath(Request req, Response res) {
+        // Get client's OS from User-Agent header
+        String userAgent = req.headers("User-Agent");
+        if (userAgent == null) {
+            userAgent = "";
+        }
+        userAgent = userAgent.toLowerCase();
+        
+        Map<String, Object> response = new HashMap<>();
+        
+        if (userAgent.contains("windows")) {
+            // Windows - use %USERPROFILE% which works for all users
+            response.put("path", "%USERPROFILE%\\Downloads");
+            response.put("displayPath", "C:\\Users\\{YourUsername}\\Downloads");
+            response.put("instructions", "Press Windows+R, type: %USERPROFILE%\\Downloads, then press Enter");
+            response.put("os", "windows");
+        } else if (userAgent.contains("mac")) {
+            response.put("path", "~/Downloads");
+            response.put("displayPath", "~/Downloads");
+            response.put("instructions", "Press Cmd+Shift+O in Finder to open Downloads");
+            response.put("os", "mac");
+        } else if (userAgent.contains("android")) {
+            response.put("path", "/storage/emulated/0/Download");
+            response.put("displayPath", "/storage/emulated/0/Download");
+            response.put("instructions", "Open your file manager and navigate to Downloads");
+            response.put("os", "android");
+        } else if (userAgent.contains("iphone") || userAgent.contains("ipad")) {
+            response.put("path", "Files app > Downloads");
+            response.put("displayPath", "Files app > Downloads");
+            response.put("instructions", "Open the Files app and navigate to Downloads");
+            response.put("os", "ios");
+        } else {
+            // Linux/Unix
+            response.put("path", "~/Downloads");
+            response.put("displayPath", "~/Downloads");
+            response.put("instructions", "Open your file manager and navigate to Downloads");
+            response.put("os", "linux");
+        }
+        
+        res.type("application/json");
+        return gson.toJson(response);
     }
 
     private Object deleteSession(Request req, Response res) {
