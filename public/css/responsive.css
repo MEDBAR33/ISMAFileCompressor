@@ -372,7 +372,13 @@ img, video, iframe {
 
     .result-value {
         font-size: 1.25rem;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
+        align-items: baseline;
+        gap: 8px;
+    }
+    
+    .result-value i {
+        align-self: center;
     }
 
     .results-actions {

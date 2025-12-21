@@ -58,27 +58,29 @@
     font-weight: 700;
     color: var(--text-primary);
     display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: nowrap;
+    line-height: 1.2;
 }
 
 .result-value i {
     font-size: 1.25rem;
     color: var(--primary);
+    flex-shrink: 0;
+    align-self: center;
 }
 
-.result-value .result-label {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    margin-left: 8px;
+.result-value span {
+    display: inline-block;
+    white-space: nowrap;
 }
 
 .result-label {
     font-size: 0.875rem;
     color: var(--text-tertiary);
-    margin-top: 4px;
+    margin-top: 6px;
+    font-weight: 500;
 }
 
 .results-actions {

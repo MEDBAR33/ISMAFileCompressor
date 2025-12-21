@@ -887,16 +887,6 @@ async function pollCompressionProgress() {
                         // Update estimated save immediately
                         updateEstimatedSaveToTotalSaved(status);
                         
-                        // Automatically download all compressed files to user's device IMMEDIATELY
-                        if (status.result && status.result.downloadFiles && status.result.downloadFiles.length > 0) {
-                            const sessionId = status.sessionId || currentSessionId;
-                            if (sessionId) {
-                                console.log('Auto-downloading files immediately...', status.result.downloadFiles);
-                                // Start downloads immediately, don't wait
-                                autoDownloadFiles(status.result.downloadFiles, sessionId);
-                            }
-                        }
-                        
                         setTimeout(() => {
                             showResults(status);
                         }, 500);
@@ -1012,30 +1002,6 @@ function showResults(status) {
             console.log('Downloads folder path displayed:', downloadsPath);
         }
         
-        // Auto-download files when compression completes
-        if (status.result && status.result.downloadFiles && status.result.downloadFiles.length > 0) {
-            console.log('Auto-downloading files on completion...', status.result.downloadFiles);
-            // Small delay to ensure UI is updated first
-            setTimeout(() => {
-                autoDownloadFiles(status.result.downloadFiles, currentSessionId);
-            }, 1000);
-        } else if (status.result && currentSessionId) {
-            // Fallback: fetch results if downloadFiles not in status
-            console.log('downloadFiles not in status.result, fetching results...');
-            fetch(`/api/progress/${currentSessionId}`)
-                .then(res => res.json())
-                .then(progressStatus => {
-                    if (progressStatus.result && progressStatus.result.downloadFiles && progressStatus.result.downloadFiles.length > 0) {
-                        console.log('Auto-downloading files from fetched results...', progressStatus.result.downloadFiles);
-                        setTimeout(() => {
-                            autoDownloadFiles(progressStatus.result.downloadFiles, currentSessionId);
-                        }, 1000);
-                    }
-                })
-                .catch(err => {
-                    console.error('Error fetching results for auto-download:', err);
-                });
-        }
     } else {
         // Fallback if no result
         if (totalSavedEl) totalSavedEl.textContent = '0 MB';
